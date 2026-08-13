@@ -41,4 +41,31 @@ router.get('/', verifyToken, async (req, res) => {
   }
 });
 
+const VALID_STATUSES = ['Submitted', 'Received', 'Under Review', 'Forwarded to Authority', 'Authority Contacted', 'Action in Progress', 'Resolved', 'Closed'];
+
+router.patch('/:id/status', verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!status || !VALID_STATUSES.includes(status)) {
+      return res.status(400).json({ error: `Status must be one of: ${VALID_STATUSES.join(', ')}` });
+    }
+
+    const result = await pool.query(
+      `UPDATE complaints SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING id, category, status, updated_at`,
+      [status, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Complaint not found.' });
+    }
+
+    res.json({ message: 'Status updated successfully', complaint: result.rows[0] });
+  } catch (err) {
+    console.error('Status update error:', err.message);
+    res.status(500).json({ error: 'Something went wrong while updating status.' });
+  }
+});
+
 module.exports = router;
