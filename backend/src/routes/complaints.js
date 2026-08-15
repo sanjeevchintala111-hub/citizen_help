@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.post('/', verifyToken, async (req, res) => {
   try {
-    const { category, description, incident_location, incident_date, danger_flag } = req.body;
+    const { category, description, incident_location, incident_date, danger_flag, contact_phone } = req.body;
     const user_id = req.user.id;
 
     if (!category || !description) {
@@ -14,10 +14,10 @@ router.post('/', verifyToken, async (req, res) => {
     }
 
     const result = await pool.query(
-      `INSERT INTO complaints (user_id, category, description, incident_location, incident_date, danger_flag)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, category, description, incident_location, danger_flag, status, created_at`,
-      [user_id, category, description, incident_location, incident_date || null, danger_flag || false]
+      `INSERT INTO complaints (user_id, category, description, incident_location, incident_date, danger_flag, contact_phone)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id, category, description, incident_location, danger_flag, contact_phone, status, created_at`,
+      [user_id, category, description, incident_location, incident_date || null, danger_flag || false, contact_phone || null]
     );
 
     res.status(201).json({ message: 'Complaint submitted successfully', complaint: result.rows[0] });

@@ -7,7 +7,7 @@ const router = express.Router();
 router.get('/complaints', verifyOfficer, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT c.id, c.category, c.description, c.incident_location, c.danger_flag, c.status, c.created_at,
+      `SELECT c.id, c.category, c.description, c.incident_location, c.danger_flag, c.contact_phone, c.status, c.created_at,
               u.name AS citizen_name, u.email AS citizen_email, u.home_state
        FROM complaints c
        JOIN users u ON c.user_id = u.id
@@ -50,3 +50,4 @@ router.patch('/complaints/:id/status', verifyOfficer, async (req, res) => {
 });
 
 module.exports = router;
+

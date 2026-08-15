@@ -11,6 +11,11 @@ const CATEGORIES = [
   "False Accusation", "Language Barrier / Communication Difficulty", "Other"
 ];
 
+const VALID_STATUSES = [
+  "Submitted", "Received", "Under Review", "Forwarded to Authority",
+  "Authority Contacted", "Action in Progress", "Resolved", "Closed"
+];
+
 const API = "http://localhost:5000";
 
 function FlagBackground() {
@@ -27,13 +32,13 @@ function FlagBackground() {
   );
 }
 
-function Letterhead() {
+function Letterhead({ officerMode }) {
   return (
     <>
       <div className="letterhead">
         <div className="emblem">CS</div>
         <div className="letterhead-text">
-          <h1>Citizen Support &amp; Emergency Liaison Platform</h1>
+          <h1>Citizen Support &amp; Emergency Liaison Platform{officerMode && <span className="officer-badge">OFFICER PORTAL</span>}</h1>
           <p>Independent prototype &mdash; not officially affiliated with any government department</p>
         </div>
       </div>
@@ -44,9 +49,10 @@ function Letterhead() {
   );
 }
 
-function AuthPage({ onLogin }) {
+function AuthPage({ onLogin, onOfficerLogin }) {
+  const [portal, setPortal] = useState('citizen');
   const [mode, setMode] = useState('login');
-  const [form, setForm] = useState({ name: '', email: '', password: '', home_state: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', home_state: '', department: '', jurisdiction_state: '' });
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -59,8 +65,18 @@ function AuthPage({ onLogin }) {
     setMessage(null);
     setLoading(true);
 
-    const endpoint = mode === 'login' ? '/api/auth/login' : '/api/auth/register';
-    const body = mode === 'login' ? { email: form.email, password: form.password } : form;
+    const isOfficer = portal === 'officer';
+    const base = isOfficer ? '/api/officer' : '/api/auth';
+    const endpoint = mode === 'login' ? `${base}/login` : `${base}/register`;
+
+    let body;
+    if (mode === 'login') {
+      body = { email: form.email, password: form.password };
+    } else if (isOfficer) {
+      body = { name: form.name, email: form.email, password: form.password, department: form.department, jurisdiction_state: form.jurisdiction_state };
+    } else {
+      body = { name: form.name, email: form.email, password: form.password, home_state: form.home_state };
+    }
 
     try {
       const res = await fetch(`${API}${endpoint}`, {
@@ -75,9 +91,15 @@ function AuthPage({ onLogin }) {
       } else {
         setMessage({ type: 'success', text: data.message });
         if (mode === 'login' && data.token) {
-          localStorage.setItem('token', data.token);
-          localStorage.setItem('user', JSON.stringify(data.user));
-          onLogin(data.token, data.user);
+          if (isOfficer) {
+            localStorage.setItem('officerToken', data.token);
+            localStorage.setItem('officer', JSON.stringify(data.officer));
+            onOfficerLogin(data.token, data.officer);
+          } else {
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            onLogin(data.token, data.user);
+          }
         }
       }
     } catch (err) {
@@ -87,10 +109,12 @@ function AuthPage({ onLogin }) {
     }
   }
 
+  const isOfficer = portal === 'officer';
+
   return (
     <>
       <FlagBackground />
-      <Letterhead />
+      <Letterhead officerMode={isOfficer} />
       <div className="page-wrap">
         <div className="auth-card">
           <div className="tabs">
@@ -98,25 +122,31 @@ function AuthPage({ onLogin }) {
             <button className={`tab ${mode === 'register' ? 'active' : ''}`} onClick={() => { setMode('register'); setMessage(null); }}>Register</button>
           </div>
           <form className="form-body" onSubmit={handleSubmit}>
-            <h2>{mode === 'login' ? 'Sign in to your account' : 'Create a new account'}</h2>
+            <h2>{isOfficer ? (mode === 'login' ? 'Officer sign in' : 'Register as an officer') : (mode === 'login' ? 'Sign in to your account' : 'Create a new account')}</h2>
             <p className="subtitle">
-              {mode === 'login' ? 'Access your complaint history and status updates.' : 'Register to report an issue and connect with your home-state authorities.'}
+              {isOfficer
+                ? 'For verified government officers only. New accounts require manual verification before dashboard access.'
+                : (mode === 'login' ? 'Access your complaint history and status updates.' : 'Register to report an issue and connect with your home-state authorities.')}
             </p>
+
             {mode === 'register' && (
               <div className="field">
                 <label htmlFor="name">Full name</label>
                 <input id="name" name="name" type="text" value={form.name} onChange={handleChange} required />
               </div>
             )}
+
             <div className="field">
               <label htmlFor="email">Email address</label>
               <input id="email" name="email" type="email" value={form.email} onChange={handleChange} required />
             </div>
+
             <div className="field">
               <label htmlFor="password">Password</label>
               <input id="password" name="password" type="password" value={form.password} onChange={handleChange} required />
             </div>
-            {mode === 'register' && (
+
+            {mode === 'register' && !isOfficer && (
               <div className="field">
                 <label htmlFor="home_state">Home state</label>
                 <select id="home_state" name="home_state" value={form.home_state} onChange={handleChange} required>
@@ -125,11 +155,35 @@ function AuthPage({ onLogin }) {
                 </select>
               </div>
             )}
+
+            {mode === 'register' && isOfficer && (
+              <>
+                <div className="field">
+                  <label htmlFor="department">Department</label>
+                  <input id="department" name="department" type="text" placeholder="e.g. AP Nodal Office" value={form.department} onChange={handleChange} required />
+                </div>
+                <div className="field">
+                  <label htmlFor="jurisdiction_state">Jurisdiction state</label>
+                  <select id="jurisdiction_state" name="jurisdiction_state" value={form.jurisdiction_state} onChange={handleChange} required>
+                    <option value="">Select jurisdiction state</option>
+                    {STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              </>
+            )}
+
             <button className="submit-btn" type="submit" disabled={loading}>
               {loading ? 'Please wait...' : mode === 'login' ? 'Sign in' : 'Create account'}
             </button>
+
             {message && <div className={`message ${message.type}`}>{message.text}</div>}
           </form>
+
+          <div className="portal-switch" style={{ paddingBottom: '20px' }}>
+            {isOfficer
+              ? <>Not an officer? <button onClick={() => { setPortal('citizen'); setMessage(null); }}>Go to citizen portal</button></>
+              : <>Are you a government officer? <button onClick={() => { setPortal('officer'); setMessage(null); }}>Officer sign in</button></>}
+          </div>
         </div>
       </div>
       <p className="emergency-note">
@@ -144,10 +198,10 @@ function ComplaintForm({ token, onSubmitted }) {
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
   const [danger, setDanger] = useState(false);
+  const [phone, setPhone] = useState('');
   const [file, setFile] = useState(null);
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
-
   const [locating, setLocating] = useState(false);
   const [locationMessage, setLocationMessage] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
@@ -156,13 +210,11 @@ function ComplaintForm({ token, onSubmitted }) {
   function handleLocationInput(value) {
     setLocation(value);
     setLocationMessage(null);
-
     if (value.trim().length < 3) {
       setSuggestions([]);
       setShowSuggestions(false);
       return;
     }
-
     if (window.__locTimer) clearTimeout(window.__locTimer);
     window.__locTimer = setTimeout(async () => {
       try {
@@ -224,7 +276,7 @@ function ComplaintForm({ token, onSubmitted }) {
       const res = await fetch(`${API}/api/complaints`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ category, description, incident_location: location, danger_flag: danger })
+        body: JSON.stringify({ category, description, incident_location: location, danger_flag: danger, contact_phone: phone })
       });
       const data = await res.json();
 
@@ -247,7 +299,7 @@ function ComplaintForm({ token, onSubmitted }) {
       }
 
       setMessage({ type: 'success', text: 'Complaint submitted successfully.' });
-      setCategory(''); setDescription(''); setLocation(''); setDanger(false); setFile(null);
+      setCategory(''); setDescription(''); setLocation(''); setDanger(false); setPhone(''); setFile(null);
       onSubmitted();
     } catch (err) {
       setMessage({ type: 'error', text: 'Could not reach the server.' });
@@ -320,6 +372,11 @@ function ComplaintForm({ token, onSubmitted }) {
         </div>
 
         <div className="field">
+          <label htmlFor="phone">Contact phone number</label>
+          <input id="phone" type="tel" placeholder="e.g. +91 98765 43210" value={phone} onChange={e => setPhone(e.target.value)} />
+        </div>
+
+        <div className="field">
           <label htmlFor="description">Description</label>
           <textarea id="description" placeholder="Describe what happened, when, and who is involved." value={description} onChange={e => setDescription(e.target.value)} required />
         </div>
@@ -350,9 +407,7 @@ function ComplaintList({ token, refreshKey }) {
   async function fetchComplaints() {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/api/complaints`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await fetch(`${API}/api/complaints`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       setComplaints(data.complaints || []);
     } catch (err) {
@@ -373,9 +428,7 @@ function ComplaintList({ token, refreshKey }) {
       <div className="panel-body">
         <div className="complaint-list">
           {loading && <div className="empty-state">Loading...</div>}
-          {!loading && complaints.length === 0 && (
-            <div className="empty-state">No complaints submitted yet.</div>
-          )}
+          {!loading && complaints.length === 0 && <div className="empty-state">No complaints submitted yet.</div>}
           {complaints.map(c => (
             <div key={c.id} className={`complaint-card ${c.danger_flag ? 'danger' : ''}`}>
               <div className="complaint-top">
@@ -397,7 +450,6 @@ function ComplaintList({ token, refreshKey }) {
 
 function Dashboard({ token, user, onLogout }) {
   const [refreshKey, setRefreshKey] = useState(0);
-
   return (
     <>
       <div className="topbar">
@@ -417,16 +469,134 @@ function Dashboard({ token, user, onLogout }) {
   );
 }
 
+function OfficerComplaintCard({ complaint, token, onUpdated }) {
+  const [status, setStatus] = useState(complaint.status);
+  const [updating, setUpdating] = useState(false);
+  const [msg, setMsg] = useState(null);
+
+  async function handleUpdate() {
+    setUpdating(true);
+    setMsg(null);
+    try {
+      const res = await fetch(`${API}/api/officer/dashboard/complaints/${complaint.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setMsg({ type: 'error', text: data.error });
+      } else {
+        setMsg({ type: 'success', text: 'Status updated.' });
+        onUpdated();
+      }
+    } catch (err) {
+      setMsg({ type: 'error', text: 'Could not reach the server.' });
+    } finally {
+      setUpdating(false);
+    }
+  }
+
+  return (
+    <div className={`complaint-card ${complaint.danger_flag ? 'danger' : ''}`}>
+      <div className="complaint-top">
+        <span className="complaint-category">{complaint.category}</span>
+        <span className={`status-badge status-${complaint.status.replace(/ /g, '-')}`}>{complaint.status}</span>
+      </div>
+      <div className="complaint-desc">{complaint.description}</div>
+      <div className="complaint-meta">
+        {complaint.incident_location && `${complaint.incident_location} · `}
+        {new Date(complaint.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+      </div>
+      <div className="citizen-info">
+        Reported by: {complaint.citizen_name} ({complaint.citizen_email}) &middot; Home state: {complaint.home_state}
+      </div>
+      <div className="status-update-row">
+        <select className="status-select" value={status} onChange={e => setStatus(e.target.value)}>
+          {VALID_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <button className="status-update-btn" onClick={handleUpdate} disabled={updating || status === complaint.status}>
+          {updating ? 'Updating...' : 'Update status'}
+        </button>
+      </div>
+      {msg && <div className={`message ${msg.type}`} style={{ marginTop: '8px' }}>{msg.text}</div>}
+    </div>
+  );
+}
+
+function OfficerDashboard({ token, officer, onLogout }) {
+  const [complaints, setComplaints] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  async function fetchComplaints() {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/api/officer/dashboard/complaints`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      setComplaints(data.complaints || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { fetchComplaints(); }, [refreshKey]);
+
+  return (
+    <>
+      <div className="topbar">
+        <div className="topbar-title">
+          {officer?.name || 'Officer'}
+          <span className="officer-badge">OFFICER</span>
+        </div>
+        <button className="logout-btn" onClick={onLogout}>Sign out</button>
+      </div>
+      <div className="disclaimer-strip">
+        {officer?.department} &middot; Jurisdiction: {officer?.jurisdiction_state}
+      </div>
+      <div className="dashboard-wrap">
+        <div className="panel">
+          <div className="panel-header">
+            <h3>Complaints in your jurisdiction</h3>
+            <p>Showing complaints from citizens whose home state is {officer?.jurisdiction_state}. Danger flags are shown first.</p>
+          </div>
+          <div className="panel-body">
+            <div className="complaint-list">
+              {loading && <div className="empty-state">Loading...</div>}
+              {!loading && complaints.length === 0 && <div className="empty-state">No complaints in your jurisdiction yet.</div>}
+              {complaints.map(c => (
+                <OfficerComplaintCard key={c.id} complaint={c} token={token} onUpdated={() => setRefreshKey(k => k + 1)} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [user, setUser] = useState(() => {
     const stored = localStorage.getItem('user');
     return stored ? JSON.parse(stored) : null;
   });
+  const [officerToken, setOfficerToken] = useState(localStorage.getItem('officerToken'));
+  const [officer, setOfficer] = useState(() => {
+    const stored = localStorage.getItem('officer');
+    return stored ? JSON.parse(stored) : null;
+  });
 
   function handleLogin(newToken, newUser) {
     setToken(newToken);
     setUser(newUser);
+  }
+
+  function handleOfficerLogin(newToken, newOfficer) {
+    setOfficerToken(newToken);
+    setOfficer(newOfficer);
   }
 
   function handleLogout() {
@@ -436,10 +606,21 @@ export default function App() {
     setUser(null);
   }
 
-  if (!token) {
-    return <AuthPage onLogin={handleLogin} />;
+  function handleOfficerLogout() {
+    localStorage.removeItem('officerToken');
+    localStorage.removeItem('officer');
+    setOfficerToken(null);
+    setOfficer(null);
   }
 
-  return <Dashboard token={token} user={user} onLogout={handleLogout} />;
+  if (officerToken) {
+    return <OfficerDashboard token={officerToken} officer={officer} onLogout={handleOfficerLogout} />;
+  }
+
+  if (token) {
+    return <Dashboard token={token} user={user} onLogout={handleLogout} />;
+  }
+
+  return <AuthPage onLogin={handleLogin} onOfficerLogin={handleOfficerLogin} />;
 }
 
