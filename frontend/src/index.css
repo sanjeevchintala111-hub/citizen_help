@@ -277,3 +277,228 @@ body {
   50%  { margin-left: 20px; }
   100% { margin-left: 0px; }
 }
+
+
+.topbar {
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.topbar-title {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 17px;
+  color: var(--navy);
+  font-weight: 600;
+}
+
+.logout-btn {
+  background: none;
+  border: 1px solid var(--border);
+  padding: 8px 16px;
+  border-radius: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.logout-btn:hover {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.dashboard-wrap {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 28px 24px 60px;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+@media (min-width: 860px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr 1.2fr;
+    align-items: start;
+  }
+}
+
+.panel {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(20,41,61,0.05);
+  animation: fadeUp 0.35s ease;
+}
+
+.panel-header {
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-header h3 {
+  margin: 0 0 4px;
+  font-family: 'Source Serif 4', Georgia, serif;
+  color: var(--navy);
+  font-size: 17px;
+}
+
+.panel-header p {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.panel-body {
+  padding: 22px;
+}
+
+.danger-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fdeceb;
+  border: 1px solid #f3c6c2;
+  padding: 12px 14px;
+  border-radius: 6px;
+  margin-bottom: 18px;
+}
+
+.danger-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--red);
+}
+
+.danger-check label {
+  font-size: 13px;
+  color: #7a2019;
+  font-weight: 600;
+  margin: 0;
+}
+
+.field textarea {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 90px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.field textarea:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(19, 136, 8, 0.12);
+}
+
+.file-input-wrap {
+  border: 1.5px dashed var(--border);
+  border-radius: 6px;
+  padding: 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.file-input-wrap:hover {
+  border-color: var(--saffron);
+  background: #fff9f2;
+}
+
+.file-input-wrap input {
+  display: none;
+}
+
+.file-name {
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: var(--green-dark);
+  font-weight: 600;
+}
+
+.complaint-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 560px;
+  overflow-y: auto;
+}
+
+.complaint-card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px;
+  animation: fadeUp 0.3s ease;
+}
+
+.complaint-card.danger {
+  border-left: 3px solid var(--red);
+}
+
+.complaint-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.complaint-category {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--navy);
+}
+
+.status-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.status-Submitted { background: #eef1f5; color: #4a5568; }
+.status-Received { background: #e6f0fb; color: #2563eb; }
+.status-Under-Review { background: #fff3cd; color: #92720c; }
+.status-Forwarded-to-Authority { background: #fde8d0; color: #b3610a; }
+.status-Authority-Contacted { background: #e0d9f7; color: #5b3aa8; }
+.status-Action-in-Progress { background: #d6ecff; color: #0b62a4; }
+.status-Resolved { background: #e9f5ee; color: var(--green-dark); }
+.status-Closed { background: #e5e7eb; color: #374151; }
+
+.complaint-desc {
+  font-size: 13px;
+  color: var(--text);
+  margin: 6px 0;
+  line-height: 1.5;
+}
+
+.complaint-meta {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13.5px;
+  padding: 30px 10px;
+}

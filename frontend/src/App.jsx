@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const STATES = [
   "Andhra Pradesh", "Bihar", "Delhi", "Gujarat", "Karnataka",
@@ -6,11 +6,47 @@ const STATES = [
   "Telangana", "Uttar Pradesh", "West Bengal"
 ];
 
-export default function App() {
+const CATEGORIES = [
+  "Harassment", "Threats", "Violence", "Stalking / Being Followed",
+  "False Accusation", "Language Barrier / Communication Difficulty", "Other"
+];
+
+const API = "http://localhost:5000";
+
+function FlagBackground() {
+  return (
+    <div className="flag-bg">
+      <svg viewBox="0 0 900 600" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="900" height="200" fill="#FF9933" />
+        <rect x="0" y="200" width="900" height="200" fill="#FFFFFF" />
+        <rect x="0" y="400" width="900" height="200" fill="#138808" />
+        <circle cx="450" cy="300" r="80" fill="none" stroke="#000080" strokeWidth="3" />
+        <circle cx="450" cy="300" r="6" fill="#000080" />
+      </svg>
+    </div>
+  );
+}
+
+function Letterhead() {
+  return (
+    <>
+      <div className="letterhead">
+        <div className="emblem">CS</div>
+        <div className="letterhead-text">
+          <h1>Citizen Support &amp; Emergency Liaison Platform</h1>
+          <p>Independent prototype &mdash; not officially affiliated with any government department</p>
+        </div>
+      </div>
+      <div className="disclaimer-strip">
+        In an emergency, contact local emergency services directly. This platform is a non-emergency follow-up channel.
+      </div>
+    </>
+  );
+}
+
+function AuthPage({ onLogin }) {
   const [mode, setMode] = useState('login');
-  const [form, setForm] = useState({
-    name: '', email: '', password: '', home_state: ''
-  });
+  const [form, setForm] = useState({ name: '', email: '', password: '', home_state: '' });
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -24,12 +60,10 @@ export default function App() {
     setLoading(true);
 
     const endpoint = mode === 'login' ? '/api/auth/login' : '/api/auth/register';
-    const body = mode === 'login'
-      ? { email: form.email, password: form.password }
-      : form;
+    const body = mode === 'login' ? { email: form.email, password: form.password } : form;
 
     try {
-      const res = await fetch(`http://localhost:5000${endpoint}`, {
+      const res = await fetch(`${API}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -42,6 +76,8 @@ export default function App() {
         setMessage({ type: 'success', text: data.message });
         if (mode === 'login' && data.token) {
           localStorage.setItem('token', data.token);
+          localStorage.setItem('user', JSON.stringify(data.user));
+          onLogin(data.token, data.user);
         }
       }
     } catch (err) {
@@ -53,68 +89,33 @@ export default function App() {
 
   return (
     <>
-      <div className="flag-bg">
-        <svg viewBox="0 0 900 600" xmlns="http://www.w3.org/2000/svg">
-          <rect x="0" y="0" width="900" height="200" fill="#FF9933" />
-          <rect x="0" y="200" width="900" height="200" fill="#FFFFFF" />
-          <rect x="0" y="400" width="900" height="200" fill="#138808" />
-          <circle cx="450" cy="300" r="80" fill="none" stroke="#000080" stroke-width="3" />
-          <circle cx="450" cy="300" r="6" fill="#000080" />
-        </svg>
-      </div>
-      <div className="letterhead">
-        <div className="emblem">CS</div>
-        <div className="letterhead-text">
-          <h1>Citizen Support &amp; Emergency Liaison Platform</h1>
-          <p>Independent prototype &mdash; not officially affiliated with any government department</p>
-        </div>
-      </div>
-      <div className="disclaimer-strip">
-        In an emergency, contact local emergency services directly. This platform is a non-emergency follow-up channel.
-      </div>
-
+      <FlagBackground />
+      <Letterhead />
       <div className="page-wrap">
         <div className="auth-card">
           <div className="tabs">
-            <button
-              className={`tab ${mode === 'login' ? 'active' : ''}`}
-              onClick={() => { setMode('login'); setMessage(null); }}
-            >
-              Sign In
-            </button>
-            <button
-              className={`tab ${mode === 'register' ? 'active' : ''}`}
-              onClick={() => { setMode('register'); setMessage(null); }}
-            >
-              Register
-            </button>
+            <button className={`tab ${mode === 'login' ? 'active' : ''}`} onClick={() => { setMode('login'); setMessage(null); }}>Sign In</button>
+            <button className={`tab ${mode === 'register' ? 'active' : ''}`} onClick={() => { setMode('register'); setMessage(null); }}>Register</button>
           </div>
-
           <form className="form-body" onSubmit={handleSubmit}>
             <h2>{mode === 'login' ? 'Sign in to your account' : 'Create a new account'}</h2>
             <p className="subtitle">
-              {mode === 'login'
-                ? 'Access your complaint history and status updates.'
-                : 'Register to report an issue and connect with your home-state authorities.'}
+              {mode === 'login' ? 'Access your complaint history and status updates.' : 'Register to report an issue and connect with your home-state authorities.'}
             </p>
-
             {mode === 'register' && (
               <div className="field">
                 <label htmlFor="name">Full name</label>
                 <input id="name" name="name" type="text" value={form.name} onChange={handleChange} required />
               </div>
             )}
-
             <div className="field">
               <label htmlFor="email">Email address</label>
               <input id="email" name="email" type="email" value={form.email} onChange={handleChange} required />
             </div>
-
             <div className="field">
               <label htmlFor="password">Password</label>
               <input id="password" name="password" type="password" value={form.password} onChange={handleChange} required />
             </div>
-
             {mode === 'register' && (
               <div className="field">
                 <label htmlFor="home_state">Home state</label>
@@ -124,18 +125,13 @@ export default function App() {
                 </select>
               </div>
             )}
-
             <button className="submit-btn" type="submit" disabled={loading}>
               {loading ? 'Please wait...' : mode === 'login' ? 'Sign in' : 'Create account'}
             </button>
-
-            {message && (
-              <div className={`message ${message.type}`}>{message.text}</div>
-            )}
+            {message && <div className={`message ${message.type}`}>{message.text}</div>}
           </form>
         </div>
       </div>
-
       <p className="emergency-note">
         This is a prototype demonstration. No data submitted here is monitored by real authorities at this stage.
       </p>
@@ -143,3 +139,306 @@ export default function App() {
   );
 }
 
+function ComplaintForm({ token, onSubmitted }) {
+  const [category, setCategory] = useState('');
+  const [description, setDescription] = useState('');
+  const [location, setLocation] = useState('');
+  const [danger, setDanger] = useState(false);
+  const [file, setFile] = useState(null);
+  const [message, setMessage] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const [locating, setLocating] = useState(false);
+  const [locationMessage, setLocationMessage] = useState(null);
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  function handleLocationInput(value) {
+    setLocation(value);
+    setLocationMessage(null);
+
+    if (value.trim().length < 3) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    if (window.__locTimer) clearTimeout(window.__locTimer);
+    window.__locTimer = setTimeout(async () => {
+      try {
+        const url = "https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&countrycodes=in&limit=5&q=" + encodeURIComponent(value);
+        const res = await fetch(url);
+        const data = await res.json();
+        setSuggestions(data);
+        setShowSuggestions(true);
+      } catch (err) {
+        setSuggestions([]);
+      }
+    }, 400);
+  }
+
+  function selectSuggestion(place) {
+    setLocation(place.display_name);
+    setSuggestions([]);
+    setShowSuggestions(false);
+  }
+
+  function useCurrentLocation() {
+    if (!navigator.geolocation) {
+      setLocationMessage({ type: 'error', text: 'Location access is not supported by this browser.' });
+      return;
+    }
+    setLocating(true);
+    setLocationMessage(null);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        try {
+          const url = "https://nominatim.openstreetmap.org/reverse?format=json&lat=" + lat + "&lon=" + lon;
+          const res = await fetch(url);
+          const data = await res.json();
+          const address = data.display_name || (lat.toFixed(5) + ", " + lon.toFixed(5));
+          setLocation(address);
+          setLocationMessage({ type: 'success', text: 'Current location added.' });
+        } catch (err) {
+          setLocation(lat.toFixed(5) + ", " + lon.toFixed(5));
+          setLocationMessage({ type: 'success', text: 'Coordinates added (address lookup unavailable).' });
+        } finally {
+          setLocating(false);
+        }
+      },
+      () => {
+        setLocating(false);
+        setLocationMessage({ type: 'error', text: 'Could not access location. Please allow location permission or enter it manually.' });
+      }
+    );
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setMessage(null);
+    setLoading(true);
+
+    try {
+      const res = await fetch(`${API}/api/complaints`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ category, description, incident_location: location, danger_flag: danger })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setMessage({ type: 'error', text: data.error || 'Something went wrong.' });
+        setLoading(false);
+        return;
+      }
+
+      const complaintId = data.complaint.id;
+
+      if (file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        await fetch(`${API}/api/evidence/${complaintId}`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData
+        });
+      }
+
+      setMessage({ type: 'success', text: 'Complaint submitted successfully.' });
+      setCategory(''); setDescription(''); setLocation(''); setDanger(false); setFile(null);
+      onSubmitted();
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Could not reach the server.' });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="panel">
+      <div className="panel-header">
+        <h3>Report an issue</h3>
+        <p>Describe what happened. You can attach a photo, video, or document as evidence.</p>
+      </div>
+      <form className="panel-body" onSubmit={handleSubmit}>
+        <div className="danger-check">
+          <input type="checkbox" id="danger" checked={danger} onChange={e => setDanger(e.target.checked)} />
+          <label htmlFor="danger">I am currently in immediate danger</label>
+        </div>
+
+        <div className="field">
+          <label htmlFor="category">Category</label>
+          <select id="category" value={category} onChange={e => setCategory(e.target.value)} required>
+            <option value="">Select a category</option>
+            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+
+        <div className="field">
+          <label htmlFor="location">Incident location</label>
+          <div style={{ display: 'flex', gap: '8px', position: 'relative' }}>
+            <div style={{ flex: 1, position: 'relative' }}>
+              <input
+                id="location"
+                type="text"
+                placeholder="Start typing a place..."
+                value={location}
+                onChange={e => handleLocationInput(e.target.value)}
+                onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                autoComplete="off"
+                style={{ width: '100%' }}
+              />
+              {showSuggestions && suggestions.length > 0 && (
+                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: '5px', marginTop: '4px', boxShadow: '0 4px 16px rgba(20,41,61,0.12)', zIndex: 10, maxHeight: '220px', overflowY: 'auto' }}>
+                  {suggestions.map((s, i) => (
+                    <div
+                      key={i}
+                      onMouseDown={() => selectSuggestion(s)}
+                      style={{ padding: '10px 12px', fontSize: '13px', cursor: 'pointer', borderBottom: i < suggestions.length - 1 ? '1px solid var(--border)' : 'none' }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#f4f6f8'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      {s.display_name}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={useCurrentLocation}
+              disabled={locating}
+              style={{ whiteSpace: 'nowrap', padding: '0 14px', border: '1px solid var(--border)', borderRadius: '5px', background: 'var(--white)', color: 'var(--green-dark)', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
+            >
+              {locating ? 'Locating...' : 'Use current location'}
+            </button>
+          </div>
+          {locationMessage && <div className={`message ${locationMessage.type}`} style={{ marginTop: '8px' }}>{locationMessage.text}</div>}
+        </div>
+
+        <div className="field">
+          <label htmlFor="description">Description</label>
+          <textarea id="description" placeholder="Describe what happened, when, and who is involved." value={description} onChange={e => setDescription(e.target.value)} required />
+        </div>
+
+        <div className="field">
+          <label>Evidence (optional)</label>
+          <label className="file-input-wrap">
+            <input type="file" accept="image/*,video/*,application/pdf" onChange={e => setFile(e.target.files[0])} />
+            {file ? 'Change file' : 'Click to attach photo, video, or PDF (max 50MB)'}
+          </label>
+          {file && <div className="file-name">Attached: {file.name}</div>}
+        </div>
+
+        <button className="submit-btn" type="submit" disabled={loading}>
+          {loading ? 'Submitting...' : 'Submit complaint'}
+        </button>
+
+        {message && <div className={`message ${message.type}`}>{message.text}</div>}
+      </form>
+    </div>
+  );
+}
+
+function ComplaintList({ token, refreshKey }) {
+  const [complaints, setComplaints] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  async function fetchComplaints() {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/api/complaints`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      setComplaints(data.complaints || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { fetchComplaints(); }, [refreshKey]);
+
+  return (
+    <div className="panel">
+      <div className="panel-header">
+        <h3>Your complaints</h3>
+        <p>Track the status of everything you've reported.</p>
+      </div>
+      <div className="panel-body">
+        <div className="complaint-list">
+          {loading && <div className="empty-state">Loading...</div>}
+          {!loading && complaints.length === 0 && (
+            <div className="empty-state">No complaints submitted yet.</div>
+          )}
+          {complaints.map(c => (
+            <div key={c.id} className={`complaint-card ${c.danger_flag ? 'danger' : ''}`}>
+              <div className="complaint-top">
+                <span className="complaint-category">{c.category}</span>
+                <span className={`status-badge status-${c.status.replace(/ /g, '-')}`}>{c.status}</span>
+              </div>
+              <div className="complaint-desc">{c.description}</div>
+              <div className="complaint-meta">
+                {c.incident_location && `${c.incident_location} · `}
+                {new Date(c.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Dashboard({ token, user, onLogout }) {
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  return (
+    <>
+      <div className="topbar">
+        <div className="topbar-title">Welcome, {user?.name || 'Citizen'}</div>
+        <button className="logout-btn" onClick={onLogout}>Sign out</button>
+      </div>
+      <div className="disclaimer-strip">
+        In an emergency, contact local emergency services directly. This platform is a non-emergency follow-up channel.
+      </div>
+      <div className="dashboard-wrap">
+        <div className="dashboard-grid">
+          <ComplaintForm token={token} onSubmitted={() => setRefreshKey(k => k + 1)} />
+          <ComplaintList token={token} refreshKey={refreshKey} />
+        </div>
+      </div>
+    </>
+  );
+}
+
+export default function App() {
+  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [user, setUser] = useState(() => {
+    const stored = localStorage.getItem('user');
+    return stored ? JSON.parse(stored) : null;
+  });
+
+  function handleLogin(newToken, newUser) {
+    setToken(newToken);
+    setUser(newUser);
+  }
+
+  function handleLogout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setToken(null);
+    setUser(null);
+  }
+
+  if (!token) {
+    return <AuthPage onLogin={handleLogin} />;
+  }
+
+  return <Dashboard token={token} user={user} onLogout={handleLogout} />;
+}
