@@ -53,6 +53,15 @@ export default function App() {
 
   return (
     <>
+      <div className="flag-bg">
+        <svg viewBox="0 0 900 600" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="900" height="200" fill="#FF9933" />
+          <rect x="0" y="200" width="900" height="200" fill="#FFFFFF" />
+          <rect x="0" y="400" width="900" height="200" fill="#138808" />
+          <circle cx="450" cy="300" r="80" fill="none" stroke="#000080" stroke-width="3" />
+          <circle cx="450" cy="300" r="6" fill="#000080" />
+        </svg>
+      </div>
       <div className="letterhead">
         <div className="emblem">CS</div>
         <div className="letterhead-text">
@@ -133,3 +142,4 @@ export default function App() {
     </>
   );
 }
+
