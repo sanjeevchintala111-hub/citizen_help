@@ -166,7 +166,7 @@ function ComplaintForm({ token, onSubmitted }) {
     if (window.__locTimer) clearTimeout(window.__locTimer);
     window.__locTimer = setTimeout(async () => {
       try {
-        const url = "https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&countrycodes=in&limit=5&q=" + encodeURIComponent(value);
+        const url = "https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&q=" + encodeURIComponent(value);
         const res = await fetch(url);
         const data = await res.json();
         setSuggestions(data);
@@ -442,3 +442,4 @@ export default function App() {
 
   return <Dashboard token={token} user={user} onLogout={handleLogout} />;
 }
+
