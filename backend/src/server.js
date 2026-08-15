@@ -4,6 +4,7 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const complaintRoutes = require('./routes/complaints');
 const directoryRoutes = require('./routes/directory');
+const evidenceRoutes = require('./routes/evidence');
 
 const app = express();
 app.use(cors());
@@ -16,6 +17,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/complaints', complaintRoutes);
 app.use('/api/directory', directoryRoutes);
+app.use('/api/evidence', evidenceRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
