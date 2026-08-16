@@ -458,6 +458,33 @@ function AuthPage(props) {
 
   const [portal, setPortal] = useState('citizen');
   const [mode, setMode] = useState('login');
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetMsg, setResetMsg] = useState(null);
+  const [resetLoading, setResetLoading] = useState(false);
+
+  function handleReset(e) {
+    e.preventDefault();
+    setResetMsg(null);
+    setResetLoading(true);
+    var base = portal === 'officer' ? '/api/officer' : '/api/auth';
+    fetch(API + base + '/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: resetEmail, new_password: resetPassword })
+    })
+      .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+      .then(function (result) {
+        if (!result.ok) {
+          setResetMsg({ type: 'error', text: result.data.error });
+        } else {
+          setResetMsg({ type: 'success', text: result.data.message });
+          setResetPassword('');
+        }
+      })
+      .catch(function () { setResetMsg({ type: 'error', text: 'Could not reach the server.' }); })
+      .finally(function () { setResetLoading(false); });
+  }
   const [form, setForm] = useState({ name: '', email: '', password: '', home_state: '', department: '', jurisdiction_state: '' });
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -532,6 +559,30 @@ function AuthPage(props) {
             <button className={"tab" + (mode === 'login' ? ' active' : '')} onClick={function () { setMode('login'); setMessage(null); }}>Sign In</button>
             <button className={"tab" + (mode === 'register' ? ' active' : '')} onClick={function () { setMode('register'); setMessage(null); }}>Register</button>
           </div>
+          {mode === 'reset' && (
+            <form className="form-body" onSubmit={handleReset}>
+              <h2>Reset your password</h2>
+              <p className="subtitle">
+                Enter your account email and choose a new password. For this prototype, no email verification is required.
+              </p>
+              <div className="field">
+                <label htmlFor="resetEmail">Email address</label>
+                <input id="resetEmail" type="email" value={resetEmail} onChange={function (e) { setResetEmail(e.target.value); }} required />
+              </div>
+              <div className="field">
+                <label htmlFor="resetPassword">New password</label>
+                <input id="resetPassword" type="password" value={resetPassword} onChange={function (e) { setResetPassword(e.target.value); }} required minLength={6} />
+              </div>
+              <button className="submit-btn" type="submit" disabled={resetLoading}>
+                {resetLoading ? 'Please wait...' : 'Reset password'}
+              </button>
+              {resetMsg && <div className={"message " + resetMsg.type}>{resetMsg.text}</div>}
+              <div className="portal-switch" style={{ marginTop: '14px' }}>
+                <button type="button" onClick={function () { setMode('login'); setResetMsg(null); }}>Back to sign in</button>
+              </div>
+            </form>
+          )}
+          {mode !== 'reset' && (
           <form className="form-body" onSubmit={handleSubmit}>
             <h2>{isOfficer ? (mode === 'login' ? 'Officer sign in' : 'Register as an officer') : (mode === 'login' ? 'Sign in to your account' : 'Create a new account')}</h2>
             <p className="subtitle">
@@ -594,7 +645,13 @@ function AuthPage(props) {
             </button>
 
             {message && <div className={"message " + message.type}>{message.text}</div>}
+            {mode === 'login' && (
+              <div className="portal-switch" style={{ marginTop: '12px' }}>
+                <button type="button" onClick={function () { setMode('reset'); setMessage(null); }}>Forgot password?</button>
+              </div>
+            )}
           </form>
+          )}
 
           <div className="portal-switch" style={{ paddingBottom: '10px' }}>
             {isOfficer
@@ -1383,6 +1440,9 @@ export default function App() {
     </div>
   );
 }
+
+
+
 
 
 

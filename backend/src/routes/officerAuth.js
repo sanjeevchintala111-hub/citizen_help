@@ -77,4 +77,30 @@ router.post('/login', async (req, res) => {
   }
 });
 
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { email, new_password } = req.body;
+    if (!email || !new_password) {
+      return res.status(400).json({ error: 'Email and new password are required.' });
+    }
+    if (new_password.length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters.' });
+    }
+
+    const existing = await pool.query('SELECT id FROM officers WHERE email = $1', [email]);
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ error: 'No officer account found with that email.' });
+    }
+
+    const password_hash = await bcrypt.hash(new_password, 10);
+    await pool.query('UPDATE officers SET password_hash = $1 WHERE email = $2', [password_hash, email]);
+
+    res.json({ message: 'Password reset successfully. You can now sign in with your new password.' });
+  } catch (err) {
+    console.error('Officer password reset error:', err.message);
+    res.status(500).json({ error: 'Something went wrong while resetting your password.' });
+  }
+});
+
 module.exports = router;
+
