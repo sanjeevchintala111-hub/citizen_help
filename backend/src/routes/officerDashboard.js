@@ -49,5 +49,38 @@ router.patch('/complaints/:id/status', verifyOfficer, async (req, res) => {
   }
 });
 
+router.get('/complaints/:id/evidence', verifyOfficer, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const supabase = require('../config/supabaseStorage');
+
+    const evidenceResult = await pool.query(
+      'SELECT id, file_url, file_type, file_name, uploaded_at FROM evidence WHERE complaint_id = $1',
+      [id]
+    );
+
+    const filesWithLinks = await Promise.all(
+      evidenceResult.rows.map(async (item) => {
+        const { data, error } = await supabase.storage
+          .from('evidence')
+          .createSignedUrl(item.file_url, 300);
+        return {
+          id: item.id,
+          file_type: item.file_type,
+          file_name: item.file_name,
+          uploaded_at: item.uploaded_at,
+          signed_url: error ? null : data.signedUrl
+        };
+      })
+    );
+
+    res.json({ evidence: filesWithLinks });
+  } catch (err) {
+    console.error('Officer fetch evidence error:', err.message);
+    res.status(500).json({ error: 'Something went wrong while fetching evidence.' });
+  }
+});
+
 module.exports = router;
+
 

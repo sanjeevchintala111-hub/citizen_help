@@ -11,7 +11,7 @@ const VALID_STATUSES = [
 ];
 
 const EMERGENCY_CONTACTS_INDIA = [
-  { name: "National Emergency Number (India)", number: "112", desc: "Police, fire, ambulance — single number for all emergencies across India.", primary: true },
+  { name: "National Emergency Number (India)", number: "112", desc: "Police, fire, ambulance - single number for all emergencies across India.", primary: true },
   { name: "Police", number: "100", desc: "Direct police helpline." },
   { name: "Women Helpline (Domestic Abuse)", number: "181", desc: "24x7 support for women affected by violence." },
   { name: "Women in Distress", number: "1091", desc: "Police helpline specifically for women in distress." },
@@ -106,7 +106,7 @@ function PlaceAutocomplete(props) {
 function EmergencyFab(props) {
   return (
     <button className="emergency-fab" onClick={props.onOpen}>
-      &#9888; Emergency Help
+      Emergency Help
     </button>
   );
 }
@@ -157,8 +157,96 @@ function EmergencyPage(props) {
             </a>
           );
         })}
+      </div>
+    </div>
+  );
+}
 
+function HelpCenterPage(props) {
+  return (
+    <div className="help-page">
+      <div className="help-header">
+        <h1>Help Center and Guidelines</h1>
+        <p>Understanding this platform, how it works, and what to do in different situations.</p>
+      </div>
+      <div className="help-content">
 
+        <div className="help-section">
+          <h2>What is this platform?</h2>
+          <p>
+            This is an independent prototype of a citizen support and communication platform, built for people
+            who are away from their home state or country and facing a difficult situation, such as harassment,
+            threats, being followed, a serious misunderstanding, or simply not knowing who to contact. It is not
+            currently affiliated with, endorsed by, or connected to any government department. No complaint
+            submitted here is monitored by real authorities at this stage. Its purpose is to demonstrate how such
+            a system could work, so that real government departments can be approached with a working example.
+          </p>
+        </div>
+
+        <div className="help-section">
+          <h2>How it works</h2>
+          <p>
+            You register with your name, email, and your home state, meaning the place you consider home,
+            regardless of where you currently are. When something happens, you file a report describing what
+            occurred, where, and when, and you can attach a photo, video, or document as supporting evidence.
+            Your report is then shown, in this prototype, to a verified officer whose jurisdiction matches your
+            home state. The officer can review your report, see any evidence you attached, and update its status
+            as it moves from Submitted through Received, Under Review, and eventually to Resolved or Closed.
+          </p>
+        </div>
+
+        <div className="help-section">
+          <h2>If you are in immediate danger</h2>
+          <p>
+            This platform is not an emergency service and should never be used as one. If you are in immediate
+            danger, contact local emergency services right away, before doing anything else. In India, dial 112,
+            the national single emergency number for police, fire, and ambulance. You can also reach the Police
+            directly at 100, the Women Helpline for domestic abuse at 181, the dedicated Women in Distress line
+            at 1091, the Child Helpline at 1098, and the Cyber Crime Helpline at 1930 for online fraud or
+            harassment. If you are outside India, dial 911 in the United States and Canada, 999 in the United
+            Kingdom, 112 anywhere in the European Union, and 000 in Australia. The number 112 also works as a
+            general fallback on most mobile networks worldwide, even without a local SIM card. You can reach all
+            of these instantly, without logging in, from the red Emergency Help button on any page of this platform.
+          </p>
+        </div>
+
+        <div className="help-section">
+          <h2>What this platform is for</h2>
+          <p>
+            Use this platform for situations that are serious but not unfolding as an immediate emergency, such
+            as documenting an ongoing pattern of harassment, requesting help understanding local procedures,
+            overcoming a language barrier, or asking your home state's authorities to help coordinate with local
+            authorities where you currently are. It is a communication and follow-up channel, not a replacement
+            for the police or emergency responders.
+          </p>
+        </div>
+
+        <div className="help-section">
+          <h2>How your information is used</h2>
+          <p>
+            Your password is never stored in plain text; it is securely hashed before saving. Evidence files are
+            stored privately and are never publicly accessible, only verified officers reviewing your specific
+            case can view them, through temporary secure links. Officer accounts require manual verification
+            before they can access any complaint, and every account type is kept strictly separate. As a
+            prototype, however, this system has not undergone formal legal or security review, and you should
+            avoid submitting highly sensitive information you would not want stored in a non-production system.
+          </p>
+        </div>
+
+        <div className="help-section">
+          <h2>Officer verification</h2>
+          <p>
+            Officer accounts are not self-serve. Anyone can register as an officer, but the account remains
+            inactive and cannot log in until an administrator manually verifies it. This exists specifically to
+            prevent unverified individuals from gaining access to citizens' complaints or personal information.
+          </p>
+        </div>
+
+        <div className="help-back">
+          <a href="#" onClick={function (e) { e.preventDefault(); props.onBack(); }}>
+            Back to the platform
+          </a>
+        </div>
       </div>
     </div>
   );
@@ -184,8 +272,8 @@ function Letterhead(props) {
       <div className="letterhead">
         <div className="emblem">CS</div>
         <div className="letterhead-text">
-          <h1>Citizen Support &amp; Emergency Liaison Platform{props.officerMode && <span className="officer-badge">OFFICER PORTAL</span>}</h1>
-          <p>Independent prototype &mdash; not officially affiliated with any government department</p>
+          <h1>Citizen Support and Emergency Liaison Platform{props.officerMode && <span className="officer-badge">OFFICER PORTAL</span>}</h1>
+          <p>Independent prototype, not officially affiliated with any government department</p>
         </div>
       </div>
       <div className="disclaimer-strip">
@@ -199,6 +287,7 @@ function AuthPage(props) {
   var onLogin = props.onLogin;
   var onOfficerLogin = props.onOfficerLogin;
   var onEmergency = props.onEmergency;
+  var onHelp = props.onHelp;
 
   const [portal, setPortal] = useState('citizen');
   const [mode, setMode] = useState('login');
@@ -349,6 +438,8 @@ function AuthPage(props) {
       </div>
       <p className="emergency-note">
         This is a prototype demonstration. No data submitted here is monitored by real authorities at this stage.
+        <br />
+        <button className="help-link-inline" onClick={onHelp} style={{ marginTop: '6px' }}>View Help Center and Guidelines</button>
       </p>
       <EmergencyFab onOpen={onEmergency} />
     </>
@@ -611,7 +702,7 @@ function ComplaintList(props) {
                 </div>
                 <div className="complaint-desc">{c.description}</div>
                 <div className="complaint-meta">
-                  {c.incident_location ? (c.incident_location + " \u00B7 ") : ""}
+                  {c.incident_location ? (c.incident_location + " | ") : ""}
                   {dateStr}
                 </div>
               </div>
@@ -628,6 +719,7 @@ function Dashboard(props) {
   var user = props.user;
   var onLogout = props.onLogout;
   var onEmergency = props.onEmergency;
+  var onHelp = props.onHelp;
 
   const [refreshKey, setRefreshKey] = useState(0);
   return (
@@ -638,6 +730,7 @@ function Dashboard(props) {
       </div>
       <div className="disclaimer-strip">
         In an emergency, contact local emergency services directly. This platform is a non-emergency follow-up channel.
+        {' '}<button className="help-link-inline" onClick={onHelp}>Help Center</button>
       </div>
       <div className="dashboard-wrap">
         <div className="dashboard-grid">
@@ -658,6 +751,27 @@ function OfficerComplaintCard(props) {
   const [status, setStatus] = useState(complaint.status);
   const [updating, setUpdating] = useState(false);
   const [msg, setMsg] = useState(null);
+  const [evidence, setEvidence] = useState(null);
+  const [loadingEvidence, setLoadingEvidence] = useState(false);
+  const [showEvidence, setShowEvidence] = useState(false);
+
+  function loadEvidence() {
+    if (showEvidence) {
+      setShowEvidence(false);
+      return;
+    }
+    setLoadingEvidence(true);
+    fetch(API + "/api/officer/dashboard/complaints/" + complaint.id + "/evidence", {
+      headers: { Authorization: 'Bearer ' + token }
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        setEvidence(data.evidence || []);
+        setShowEvidence(true);
+      })
+      .catch(function () { setEvidence([]); setShowEvidence(true); })
+      .finally(function () { setLoadingEvidence(false); });
+  }
 
   function handleUpdate() {
     setUpdating(true);
@@ -696,12 +810,12 @@ function OfficerComplaintCard(props) {
       </div>
       <div className="complaint-desc">{complaint.description}</div>
       <div className="complaint-meta">
-        {complaint.incident_location ? (complaint.incident_location + " \u00B7 ") : ""}
+        {complaint.incident_location ? (complaint.incident_location + " | ") : ""}
         {dateStr}
       </div>
       <div className="citizen-info">
-        Reported by: {complaint.citizen_name} ({complaint.citizen_email}) &middot; Home state: {complaint.home_state}
-        {complaint.contact_phone ? (" \u00B7 Phone: " + complaint.contact_phone) : ""}
+        Reported by: {complaint.citizen_name} ({complaint.citizen_email}) | Home state: {complaint.home_state}
+        {complaint.contact_phone ? (" | Phone: " + complaint.contact_phone) : ""}
       </div>
       <div className="status-update-row">
         <select className="status-select" value={status} onChange={function (e) { setStatus(e.target.value); }}>
@@ -710,7 +824,52 @@ function OfficerComplaintCard(props) {
         <button className="status-update-btn" onClick={handleUpdate} disabled={updating || status === complaint.status}>
           {updating ? 'Updating...' : 'Update status'}
         </button>
+        <button
+          type="button"
+          onClick={loadEvidence}
+          disabled={loadingEvidence}
+          style={{ padding: '7px 14px', border: '1px solid var(--border)', borderRadius: '5px', background: 'var(--white)', color: 'var(--navy)', fontWeight: 600, fontSize: '12.5px', cursor: 'pointer', fontFamily: 'inherit' }}
+        >
+          {loadingEvidence ? 'Loading...' : showEvidence ? 'Hide evidence' : 'View evidence'}
+        </button>
       </div>
+
+      {showEvidence && (
+        <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed var(--border)' }}>
+          {(!evidence || evidence.length === 0) && (
+            <div style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>No evidence attached to this complaint.</div>
+          )}
+          {evidence && evidence.map(function (ev) {
+            if (!ev.signed_url) {
+              return <div key={ev.id} style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>{ev.file_name} (could not load)</div>;
+            }
+            if (ev.file_type && ev.file_type.indexOf('image') === 0) {
+              return (
+                <div key={ev.id} style={{ marginBottom: '10px' }}>
+                  <img src={ev.signed_url} alt={ev.file_name} style={{ maxWidth: '100%', borderRadius: '6px', border: '1px solid var(--border)' }} />
+                </div>
+              );
+            }
+            if (ev.file_type && ev.file_type.indexOf('video') === 0) {
+              return (
+                <div key={ev.id} style={{ marginBottom: '10px' }}>
+                  <video controls style={{ maxWidth: '100%', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                    <source src={ev.signed_url} type={ev.file_type} />
+                  </video>
+                </div>
+              );
+            }
+            return (
+              <div key={ev.id} style={{ marginBottom: '8px' }}>
+                <a href={ev.signed_url} target="_blank" rel="noreferrer" style={{ fontSize: '13px', color: 'var(--green-dark)', fontWeight: 600 }}>
+                  Open {ev.file_name}
+                </a>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {msg && <div className={"message " + msg.type} style={{ marginTop: '8px' }}>{msg.text}</div>}
     </div>
   );
@@ -721,6 +880,7 @@ function OfficerDashboard(props) {
   var officer = props.officer;
   var onLogout = props.onLogout;
   var onEmergency = props.onEmergency;
+  var onHelp = props.onHelp;
 
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -747,7 +907,8 @@ function OfficerDashboard(props) {
         <button className="logout-btn" onClick={onLogout}>Sign out</button>
       </div>
       <div className="disclaimer-strip">
-        {officer && officer.department} &middot; Jurisdiction: {officer && officer.jurisdiction_state}
+        {officer && officer.department} | Jurisdiction: {officer && officer.jurisdiction_state}
+        {' '}<button className="help-link-inline" onClick={onHelp}>Help Center</button>
       </div>
       <div className="dashboard-wrap">
         <div className="panel">
@@ -783,6 +944,7 @@ export default function App() {
     return stored ? JSON.parse(stored) : null;
   });
   const [showEmergency, setShowEmergency] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   function handleLogin(newToken, newUser) {
     setToken(newToken);
@@ -812,17 +974,17 @@ export default function App() {
     return <EmergencyPage onBack={function () { setShowEmergency(false); }} />;
   }
 
+  if (showHelp) {
+    return <HelpCenterPage onBack={function () { setShowHelp(false); }} />;
+  }
+
   if (officerToken) {
-    return <OfficerDashboard token={officerToken} officer={officer} onLogout={handleOfficerLogout} onEmergency={function () { setShowEmergency(true); }} />;
+    return <OfficerDashboard token={officerToken} officer={officer} onLogout={handleOfficerLogout} onEmergency={function () { setShowEmergency(true); }} onHelp={function () { setShowHelp(true); }} />;
   }
 
   if (token) {
-    return <Dashboard token={token} user={user} onLogout={handleLogout} onEmergency={function () { setShowEmergency(true); }} />;
+    return <Dashboard token={token} user={user} onLogout={handleLogout} onEmergency={function () { setShowEmergency(true); }} onHelp={function () { setShowHelp(true); }} />;
   }
 
-  return <AuthPage onLogin={handleLogin} onOfficerLogin={handleOfficerLogin} onEmergency={function () { setShowEmergency(true); }} />;
+  return <AuthPage onLogin={handleLogin} onOfficerLogin={handleOfficerLogin} onEmergency={function () { setShowEmergency(true); }} onHelp={function () { setShowHelp(true); }} />;
 }
-
-
-
-
