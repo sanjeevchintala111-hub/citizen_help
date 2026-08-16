@@ -252,6 +252,172 @@ function HelpCenterPage(props) {
   );
 }
 
+function StarRow(props) {
+  var value = props.value;
+  var onChange = props.onChange;
+  var stars = [1, 2, 3, 4, 5];
+  return (
+    <div className="star-row">
+      {stars.map(function (n) {
+        return (
+          <button
+            type="button"
+            key={n}
+            className={"star-btn" + (n <= value ? " filled" : "")}
+            onClick={function () { onChange(n); }}
+          >
+            {"\u2605"}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function StarDisplay(props) {
+  var rating = props.rating;
+  var full = "\u2605".repeat(rating);
+  var empty = "\u2606".repeat(5 - rating);
+  return <span className="star-display">{full}{empty}</span>;
+}
+
+function ReviewsPage(props) {
+  var isLoggedIn = props.isLoggedIn;
+  var token = props.token;
+
+  const [reviews, setReviews] = useState([]);
+  const [average, setAverage] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [rating, setRating] = useState(0);
+  const [text, setText] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [msg, setMsg] = useState(null);
+
+  function fetchReviews() {
+    setLoading(true);
+    fetch(API + "/api/reviews")
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        setReviews(data.reviews || []);
+        setAverage(data.average_rating || 0);
+        setTotal(data.total_reviews || 0);
+      })
+      .catch(function () {})
+      .finally(function () { setLoading(false); });
+  }
+
+  useEffect(function () { fetchReviews(); }, []);
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    if (rating === 0) {
+      setMsg({ type: 'error', text: 'Please select a star rating.' });
+      return;
+    }
+    setSubmitting(true);
+    setMsg(null);
+    fetch(API + "/api/reviews", {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ rating: rating, review_text: text })
+    })
+      .then(function (res) {
+        return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+      })
+      .then(function (result) {
+        if (!result.ok) {
+          setMsg({ type: 'error', text: result.data.error });
+        } else {
+          setMsg({ type: 'success', text: 'Thank you for sharing your experience.' });
+          setRating(0);
+          setText('');
+          fetchReviews();
+        }
+      })
+      .catch(function () {
+        setMsg({ type: 'error', text: 'Could not reach the server.' });
+      })
+      .finally(function () {
+        setSubmitting(false);
+      });
+  }
+
+  return (
+    <div className="reviews-page">
+      <div className="reviews-header">
+        <h1>Community Reviews</h1>
+        <div className="reviews-avg">
+          {total > 0 ? (
+            <>Average rating: <strong>{average}</strong> / 5 from {total} {total === 1 ? 'review' : 'reviews'}</>
+          ) : (
+            <>No reviews yet. Be the first to share your experience.</>
+          )}
+        </div>
+      </div>
+      <div className="reviews-wrap">
+
+        {isLoggedIn ? (
+          <div className="panel" style={{ marginBottom: '24px' }}>
+            <div className="panel-header">
+              <h3>Share your experience</h3>
+              <p>If this platform helped you, let others know. Your feedback helps more people trust and use it.</p>
+            </div>
+            <form className="panel-body" onSubmit={handleSubmit}>
+              <div className="field">
+                <label>Your rating</label>
+                <StarRow value={rating} onChange={setRating} />
+              </div>
+              <div className="field">
+                <label htmlFor="reviewText">Your feedback</label>
+                <textarea
+                  id="reviewText"
+                  placeholder="Tell us about your experience using this platform..."
+                  value={text}
+                  onChange={function (e) { setText(e.target.value); }}
+                  required
+                />
+              </div>
+              <button className="submit-btn" type="submit" disabled={submitting}>
+                {submitting ? 'Submitting...' : 'Submit review'}
+              </button>
+              {msg && <div className={"message " + msg.type}>{msg.text}</div>}
+            </form>
+          </div>
+        ) : (
+          <div className="pending-notice" style={{ marginBottom: '24px' }}>
+            Sign in to your account to share your own review.
+          </div>
+        )}
+
+        <div>
+          {loading && <div className="empty-state">Loading reviews...</div>}
+          {!loading && reviews.length === 0 && <div className="empty-state">No reviews yet.</div>}
+          {reviews.map(function (r) {
+            var dateStr = new Date(r.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+            return (
+              <div key={r.id} className="review-card">
+                <div className="review-top">
+                  <span className="review-name">{r.citizen_name}</span>
+                  <span className="review-date">{dateStr}</span>
+                </div>
+                <StarDisplay rating={r.rating} />
+                <div className="review-text">{r.review_text}</div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="help-back" style={{ marginTop: '20px' }}>
+          <a href="#" onClick={function (e) { e.preventDefault(); props.onBack(); }}>
+            Back to the platform
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function FlagBackground() {
   return (
     <div className="flag-bg">
@@ -288,6 +454,7 @@ function AuthPage(props) {
   var onOfficerLogin = props.onOfficerLogin;
   var onEmergency = props.onEmergency;
   var onHelp = props.onHelp;
+  var onReviews = props.onReviews;
 
   const [portal, setPortal] = useState('citizen');
   const [mode, setMode] = useState('login');
@@ -429,10 +596,13 @@ function AuthPage(props) {
             {message && <div className={"message " + message.type}>{message.text}</div>}
           </form>
 
-          <div className="portal-switch" style={{ paddingBottom: '20px' }}>
+          <div className="portal-switch" style={{ paddingBottom: '10px' }}>
             {isOfficer
               ? <>Not an officer? <button onClick={function () { setPortal('citizen'); setMessage(null); }}>Go to citizen portal</button></>
               : <>Are you a government officer? <button onClick={function () { setPortal('officer'); setMessage(null); }}>Officer sign in</button></>}
+          </div>
+          <div className="portal-switch" style={{ paddingBottom: '20px' }}>
+            <button onClick={onReviews}>See community reviews</button>
           </div>
         </div>
       </div>
@@ -720,6 +890,7 @@ function Dashboard(props) {
   var onLogout = props.onLogout;
   var onEmergency = props.onEmergency;
   var onHelp = props.onHelp;
+  var onReviews = props.onReviews;
 
   const [refreshKey, setRefreshKey] = useState(0);
   return (
@@ -731,6 +902,7 @@ function Dashboard(props) {
       <div className="disclaimer-strip">
         In an emergency, contact local emergency services directly. This platform is a non-emergency follow-up channel.
         {' '}<button className="help-link-inline" onClick={onHelp}>Help Center</button>
+        {' | '}<button className="help-link-inline" onClick={onReviews}>Reviews</button>
       </div>
       <div className="dashboard-wrap">
         <div className="dashboard-grid">
@@ -881,6 +1053,7 @@ function OfficerDashboard(props) {
   var onLogout = props.onLogout;
   var onEmergency = props.onEmergency;
   var onHelp = props.onHelp;
+  var onReviews = props.onReviews;
 
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -909,6 +1082,7 @@ function OfficerDashboard(props) {
       <div className="disclaimer-strip">
         {officer && officer.department} | Jurisdiction: {officer && officer.jurisdiction_state}
         {' '}<button className="help-link-inline" onClick={onHelp}>Help Center</button>
+        {' | '}<button className="help-link-inline" onClick={onReviews}>Reviews</button>
       </div>
       <div className="dashboard-wrap">
         <div className="panel">
@@ -945,6 +1119,7 @@ export default function App() {
   });
   const [showEmergency, setShowEmergency] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showReviews, setShowReviews] = useState(false);
 
   function handleLogin(newToken, newUser) {
     setToken(newToken);
@@ -978,13 +1153,17 @@ export default function App() {
     return <HelpCenterPage onBack={function () { setShowHelp(false); }} />;
   }
 
+  if (showReviews) {
+    return <ReviewsPage onBack={function () { setShowReviews(false); }} isLoggedIn={!!token} token={token} />;
+  }
+
   if (officerToken) {
-    return <OfficerDashboard token={officerToken} officer={officer} onLogout={handleOfficerLogout} onEmergency={function () { setShowEmergency(true); }} onHelp={function () { setShowHelp(true); }} />;
+    return <OfficerDashboard token={officerToken} officer={officer} onLogout={handleOfficerLogout} onEmergency={function () { setShowEmergency(true); }} onHelp={function () { setShowHelp(true); }} onReviews={function () { setShowReviews(true); }} />;
   }
 
   if (token) {
-    return <Dashboard token={token} user={user} onLogout={handleLogout} onEmergency={function () { setShowEmergency(true); }} onHelp={function () { setShowHelp(true); }} />;
+    return <Dashboard token={token} user={user} onLogout={handleLogout} onEmergency={function () { setShowEmergency(true); }} onHelp={function () { setShowHelp(true); }} onReviews={function () { setShowReviews(true); }} />;
   }
 
-  return <AuthPage onLogin={handleLogin} onOfficerLogin={handleOfficerLogin} onEmergency={function () { setShowEmergency(true); }} onHelp={function () { setShowHelp(true); }} />;
+  return <AuthPage onLogin={handleLogin} onOfficerLogin={handleOfficerLogin} onEmergency={function () { setShowEmergency(true); }} onHelp={function () { setShowHelp(true); }} onReviews={function () { setShowReviews(true); }} />;
 }

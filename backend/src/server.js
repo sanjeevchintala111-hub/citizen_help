@@ -7,6 +7,7 @@ const directoryRoutes = require('./routes/directory');
 const evidenceRoutes = require('./routes/evidence');
 const officerAuthRoutes = require('./routes/officerAuth');
 const officerDashboardRoutes = require('./routes/officerDashboard');
+const reviewRoutes = require('./routes/reviews');
 
 const app = express();
 app.use(cors());
@@ -22,8 +23,10 @@ app.use('/api/directory', directoryRoutes);
 app.use('/api/evidence', evidenceRoutes);
 app.use('/api/officer', officerAuthRoutes);
 app.use('/api/officer/dashboard', officerDashboardRoutes);
+app.use('/api/reviews', reviewRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
