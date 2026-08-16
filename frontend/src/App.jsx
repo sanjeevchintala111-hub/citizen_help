@@ -884,6 +884,39 @@ function ComplaintList(props) {
   );
 }
 
+function Sidebar(props) {
+  var role = props.role;
+  var name = props.name;
+  var view = props.view;
+  var onNavigate = props.onNavigate;
+  var onEmergency = props.onEmergency;
+  var onSignOut = props.onSignOut;
+
+  return (
+    <div className="sidebar">
+      <div className="sidebar-brand">
+        <div className="sidebar-brand-title">Citizen Support Platform</div>
+        <div className="sidebar-user">{name}{role === 'officer' ? ' (Officer)' : ''}</div>
+      </div>
+      <div className="sidebar-nav">
+        <button className={"sidebar-link" + (view === 'dashboard' ? ' active' : '')} onClick={function () { onNavigate('dashboard'); }}>
+          {role === 'officer' ? 'Complaints Dashboard' : 'Report an Issue'}
+        </button>
+        <button className={"sidebar-link" + (view === 'reviews' ? ' active' : '')} onClick={function () { onNavigate('reviews'); }}>
+          Community Reviews
+        </button>
+        <button className={"sidebar-link" + (view === 'help' ? ' active' : '')} onClick={function () { onNavigate('help'); }}>
+          Help Center
+        </button>
+      </div>
+      <button className="sidebar-emergency-link" onClick={onEmergency}>Emergency Help</button>
+      <div className="sidebar-footer">
+        <button className="sidebar-signout" onClick={onSignOut}>Sign out</button>
+      </div>
+    </div>
+  );
+}
+
 function Dashboard(props) {
   var token = props.token;
   var user = props.user;
@@ -895,14 +928,8 @@ function Dashboard(props) {
   const [refreshKey, setRefreshKey] = useState(0);
   return (
     <>
-      <div className="topbar">
-        <div className="topbar-title">Welcome, {(user && user.name) || 'Citizen'}</div>
-        <button className="logout-btn" onClick={onLogout}>Sign out</button>
-      </div>
       <div className="disclaimer-strip">
         In an emergency, contact local emergency services directly. This platform is a non-emergency follow-up channel.
-        {' '}<button className="help-link-inline" onClick={onHelp}>Help Center</button>
-        {' | '}<button className="help-link-inline" onClick={onReviews}>Reviews</button>
       </div>
       <div className="dashboard-wrap">
         <div className="dashboard-grid">
@@ -910,7 +937,6 @@ function Dashboard(props) {
           <ComplaintList token={token} refreshKey={refreshKey} />
         </div>
       </div>
-      <EmergencyFab onOpen={onEmergency} />
     </>
   );
 }
@@ -1072,17 +1098,8 @@ function OfficerDashboard(props) {
 
   return (
     <>
-      <div className="topbar">
-        <div className="topbar-title">
-          {(officer && officer.name) || 'Officer'}
-          <span className="officer-badge">OFFICER</span>
-        </div>
-        <button className="logout-btn" onClick={onLogout}>Sign out</button>
-      </div>
       <div className="disclaimer-strip">
-        {officer && officer.department} | Jurisdiction: {officer && officer.jurisdiction_state}
-        {' '}<button className="help-link-inline" onClick={onHelp}>Help Center</button>
-        {' | '}<button className="help-link-inline" onClick={onReviews}>Reviews</button>
+        {officer && officer.department} - Jurisdiction: {officer && officer.jurisdiction_state}
       </div>
       <div className="dashboard-wrap">
         <div className="panel">
@@ -1101,7 +1118,6 @@ function OfficerDashboard(props) {
           </div>
         </div>
       </div>
-      <EmergencyFab onOpen={onEmergency} />
     </>
   );
 }
@@ -1149,21 +1165,57 @@ export default function App() {
     return <EmergencyPage onBack={function () { setShowEmergency(false); }} />;
   }
 
-  if (showHelp) {
-    return <HelpCenterPage onBack={function () { setShowHelp(false); }} />;
+  var isLoggedIn = !!token || !!officerToken;
+
+  if (!isLoggedIn) {
+    if (showHelp) {
+      return <HelpCenterPage onBack={function () { setShowHelp(false); }} />;
+    }
+    if (showReviews) {
+      return <ReviewsPage onBack={function () { setShowReviews(false); }} isLoggedIn={false} token={null} />;
+    }
+    return <AuthPage onLogin={handleLogin} onOfficerLogin={handleOfficerLogin} onEmergency={function () { setShowEmergency(true); }} onHelp={function () { setShowHelp(true); }} onReviews={function () { setShowReviews(true); }} />;
   }
 
-  if (showReviews) {
-    return <ReviewsPage onBack={function () { setShowReviews(false); }} isLoggedIn={!!token} token={token} />;
+  var role = officerToken ? 'officer' : 'citizen';
+  var displayName = officerToken ? ((officer && officer.name) || 'Officer') : ((user && user.name) || 'Citizen');
+  var activeView = showReviews ? 'reviews' : (showHelp ? 'help' : 'dashboard');
+
+  function navigate(view) {
+    setShowReviews(view === 'reviews');
+    setShowHelp(view === 'help');
   }
 
-  if (officerToken) {
-    return <OfficerDashboard token={officerToken} officer={officer} onLogout={handleOfficerLogout} onEmergency={function () { setShowEmergency(true); }} onHelp={function () { setShowHelp(true); }} onReviews={function () { setShowReviews(true); }} />;
+  function handleAnySignOut() {
+    if (officerToken) { handleOfficerLogout(); } else { handleLogout(); }
+    setShowReviews(false);
+    setShowHelp(false);
   }
 
-  if (token) {
-    return <Dashboard token={token} user={user} onLogout={handleLogout} onEmergency={function () { setShowEmergency(true); }} onHelp={function () { setShowHelp(true); }} onReviews={function () { setShowReviews(true); }} />;
-  }
-
-  return <AuthPage onLogin={handleLogin} onOfficerLogin={handleOfficerLogin} onEmergency={function () { setShowEmergency(true); }} onHelp={function () { setShowHelp(true); }} onReviews={function () { setShowReviews(true); }} />;
+  return (
+    <div className="app-shell">
+      <Sidebar
+        role={role}
+        name={displayName}
+        view={activeView}
+        onNavigate={navigate}
+        onEmergency={function () { setShowEmergency(true); }}
+        onSignOut={handleAnySignOut}
+      />
+      <div className="app-main">
+        {activeView === 'reviews' && <ReviewsPage onBack={function () { navigate('dashboard'); }} isLoggedIn={true} token={token} />}
+        {activeView === 'help' && <HelpCenterPage onBack={function () { navigate('dashboard'); }} />}
+        {activeView === 'dashboard' && role === 'officer' && (
+          <OfficerDashboard token={officerToken} officer={officer} onLogout={handleAnySignOut} onEmergency={function () { setShowEmergency(true); }} />
+        )}
+        {activeView === 'dashboard' && role === 'citizen' && (
+          <Dashboard token={token} user={user} onLogout={handleAnySignOut} onEmergency={function () { setShowEmergency(true); }} />
+        )}
+      </div>
+    </div>
+  );
 }
+
+
+
+
