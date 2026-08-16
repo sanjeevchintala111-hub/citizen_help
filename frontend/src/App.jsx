@@ -884,6 +884,154 @@ function ComplaintList(props) {
   );
 }
 
+function ProfilePage(props) {
+  var token = props.token;
+  var onUpdated = props.onUpdated;
+
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const [form, setForm] = useState({ name: '', phone: '', village: '', current_location: '', home_state: '' });
+
+  function loadProfile() {
+    setLoading(true);
+    fetch(API + "/api/profile", { headers: { Authorization: 'Bearer ' + token } })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        setProfile(data.profile);
+        setForm({
+          name: data.profile.name || '',
+          phone: data.profile.phone || '',
+          village: data.profile.village || '',
+          current_location: data.profile.current_location || '',
+          home_state: data.profile.home_state || ''
+        });
+      })
+      .catch(function () {})
+      .finally(function () { setLoading(false); });
+  }
+
+  useEffect(function () { loadProfile(); }, []);
+
+  function handleChange(e) {
+    var u = Object.assign({}, form);
+    u[e.target.name] = e.target.value;
+    setForm(u);
+  }
+
+  function handleSave(e) {
+    e.preventDefault();
+    setSaving(true);
+    setMsg(null);
+    fetch(API + "/api/profile", {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify(form)
+    })
+      .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+      .then(function (result) {
+        if (!result.ok) {
+          setMsg({ type: 'error', text: result.data.error });
+        } else {
+          setMsg({ type: 'success', text: 'Profile updated.' });
+          setProfile(result.data.profile);
+          if (onUpdated) onUpdated(result.data.profile);
+        }
+      })
+      .catch(function () { setMsg({ type: 'error', text: 'Could not reach the server.' }); })
+      .finally(function () { setSaving(false); });
+  }
+
+  function handlePicUpload(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    setMsg(null);
+    var formData = new FormData();
+    formData.append('file', file);
+    fetch(API + "/api/profile/picture", {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + token },
+      body: formData
+    })
+      .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+      .then(function (result) {
+        if (!result.ok) {
+          setMsg({ type: 'error', text: result.data.error });
+        } else {
+          var updatedProfile = Object.assign({}, profile, { profile_pic_url: result.data.profile_pic_url });
+          setProfile(updatedProfile);
+          if (onUpdated) onUpdated(updatedProfile);
+          setMsg({ type: 'success', text: 'Profile picture updated.' });
+        }
+      })
+      .catch(function () { setMsg({ type: 'error', text: 'Could not reach the server.' }); })
+      .finally(function () { setUploading(false); });
+  }
+
+  if (loading) {
+    return <div className="profile-page-wrap"><div className="empty-state">Loading profile...</div></div>;
+  }
+
+  var initials = (profile && profile.name) ? profile.name.charAt(0).toUpperCase() : '?';
+
+  return (
+    <div className="profile-page-wrap">
+      <div className="profile-pic-big">
+        {profile && profile.profile_pic_url ? <img src={profile.profile_pic_url} alt="Profile" /> : initials}
+      </div>
+      <label className="profile-pic-upload-label">
+        {uploading ? 'Uploading...' : 'Change profile picture'}
+        <input type="file" accept="image/jpeg,image/png,image/jpg" onChange={handlePicUpload} disabled={uploading} />
+      </label>
+
+      <div className="panel">
+        <div className="panel-header">
+          <h3>My Profile</h3>
+          <p>This information is shared with the officer reviewing your complaints.</p>
+        </div>
+        <form className="panel-body" onSubmit={handleSave}>
+          <div className="field">
+            <label htmlFor="pname">Full name</label>
+            <input id="pname" name="name" type="text" value={form.name} onChange={handleChange} required />
+          </div>
+          <div className="field">
+            <label>Email address</label>
+            <input type="email" value={(profile && profile.email) || ''} disabled style={{ background: '#f4f6f8', color: 'var(--text-muted)' }} />
+          </div>
+          <div className="field">
+            <label htmlFor="pphone">Phone number</label>
+            <input id="pphone" name="phone" type="tel" placeholder="e.g. +91 98765 43210" value={form.phone} onChange={handleChange} />
+          </div>
+          <div className="field">
+            <label htmlFor="phome">Home state / region / country</label>
+            <PlaceAutocomplete
+              id="phome"
+              value={form.home_state}
+              onChange={function (v) { var u = Object.assign({}, form); u.home_state = v; setForm(u); }}
+              placeholder="e.g. Andhra Pradesh, or your country"
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="pvillage">Native village / hometown</label>
+            <input id="pvillage" name="village" type="text" placeholder="e.g. your native village or town" value={form.village} onChange={handleChange} />
+          </div>
+          <div className="field">
+            <label htmlFor="pcurrent">Current location (where you live now)</label>
+            <input id="pcurrent" name="current_location" type="text" placeholder="e.g. city you are currently staying in" value={form.current_location} onChange={handleChange} />
+          </div>
+          <button className="submit-btn" type="submit" disabled={saving}>
+            {saving ? 'Saving...' : 'Save profile'}
+          </button>
+          {msg && <div className={"message " + msg.type}>{msg.text}</div>}
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function Sidebar(props) {
   var role = props.role;
   var name = props.name;
@@ -891,17 +1039,32 @@ function Sidebar(props) {
   var onNavigate = props.onNavigate;
   var onEmergency = props.onEmergency;
   var onSignOut = props.onSignOut;
+  var profilePic = props.profilePic;
 
   return (
     <div className="sidebar">
       <div className="sidebar-brand">
-        <div className="sidebar-brand-title">Citizen Support Platform</div>
-        <div className="sidebar-user">{name}{role === 'officer' ? ' (Officer)' : ''}</div>
+        <div className="sidebar-brand-row">
+          {role === 'citizen' && (
+            <div className="profile-circle" onClick={function () { onNavigate('profile'); }}>
+              {profilePic ? <img src={profilePic} alt="Profile" /> : (name ? name.charAt(0).toUpperCase() : '?')}
+            </div>
+          )}
+          <div>
+            <div className="sidebar-brand-title">Citizen Support Platform</div>
+            <div className="sidebar-user">{name}{role === 'officer' ? ' (Officer)' : ''}</div>
+          </div>
+        </div>
       </div>
       <div className="sidebar-nav">
         <button className={"sidebar-link" + (view === 'dashboard' ? ' active' : '')} onClick={function () { onNavigate('dashboard'); }}>
           {role === 'officer' ? 'Complaints Dashboard' : 'Report an Issue'}
         </button>
+        {role === 'citizen' && (
+          <button className={"sidebar-link" + (view === 'profile' ? ' active' : '')} onClick={function () { onNavigate('profile'); }}>
+            My Profile
+          </button>
+        )}
         <button className={"sidebar-link" + (view === 'reviews' ? ' active' : '')} onClick={function () { onNavigate('reviews'); }}>
           Community Reviews
         </button>
@@ -1136,6 +1299,8 @@ export default function App() {
   const [showEmergency, setShowEmergency] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showReviews, setShowReviews] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [profilePic, setProfilePic] = useState(null);
 
   function handleLogin(newToken, newUser) {
     setToken(newToken);
@@ -1179,11 +1344,12 @@ export default function App() {
 
   var role = officerToken ? 'officer' : 'citizen';
   var displayName = officerToken ? ((officer && officer.name) || 'Officer') : ((user && user.name) || 'Citizen');
-  var activeView = showReviews ? 'reviews' : (showHelp ? 'help' : 'dashboard');
+  var activeView = showReviews ? 'reviews' : (showHelp ? 'help' : (showProfile ? 'profile' : 'dashboard'));
 
   function navigate(view) {
     setShowReviews(view === 'reviews');
     setShowHelp(view === 'help');
+    setShowProfile(view === 'profile');
   }
 
   function handleAnySignOut() {
@@ -1201,10 +1367,12 @@ export default function App() {
         onNavigate={navigate}
         onEmergency={function () { setShowEmergency(true); }}
         onSignOut={handleAnySignOut}
+        profilePic={profilePic}
       />
       <div className="app-main">
         {activeView === 'reviews' && <ReviewsPage onBack={function () { navigate('dashboard'); }} isLoggedIn={true} token={token} />}
         {activeView === 'help' && <HelpCenterPage onBack={function () { navigate('dashboard'); }} />}
+        {activeView === 'profile' && <ProfilePage token={token} onUpdated={function (p) { setProfilePic(p.profile_pic_url); }} />}
         {activeView === 'dashboard' && role === 'officer' && (
           <OfficerDashboard token={officerToken} officer={officer} onLogout={handleAnySignOut} onEmergency={function () { setShowEmergency(true); }} />
         )}
@@ -1215,6 +1383,9 @@ export default function App() {
     </div>
   );
 }
+
+
+
 
 
 
