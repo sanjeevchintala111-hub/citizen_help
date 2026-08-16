@@ -1,11 +1,5 @@
 import { useState, useEffect } from 'react';
 
-const STATES = [
-  "Andhra Pradesh", "Bihar", "Delhi", "Gujarat", "Karnataka",
-  "Kerala", "Maharashtra", "Punjab", "Rajasthan", "Tamil Nadu",
-  "Telangana", "Uttar Pradesh", "West Bengal"
-];
-
 const CATEGORIES = [
   "Harassment", "Threats", "Violence", "Stalking / Being Followed",
   "False Accusation", "Language Barrier / Communication Difficulty", "Other"
@@ -16,7 +10,159 @@ const VALID_STATUSES = [
   "Authority Contacted", "Action in Progress", "Resolved", "Closed"
 ];
 
+const EMERGENCY_CONTACTS_INDIA = [
+  { name: "National Emergency Number (India)", number: "112", desc: "Police, fire, ambulance — single number for all emergencies across India.", primary: true },
+  { name: "Police", number: "100", desc: "Direct police helpline." },
+  { name: "Women Helpline (Domestic Abuse)", number: "181", desc: "24x7 support for women affected by violence." },
+  { name: "Women in Distress", number: "1091", desc: "Police helpline specifically for women in distress." },
+  { name: "Child Helpline", number: "1098", desc: "24x7 emergency support for children." },
+  { name: "Cyber Crime Helpline", number: "1930", desc: "Report online fraud or cybercrime immediately." }
+];
+
+const EMERGENCY_CONTACTS_INTERNATIONAL = [
+  { name: "USA / Canada", number: "911", desc: "Police, fire, ambulance." },
+  { name: "UK", number: "999", desc: "Police, fire, ambulance. (112 also works.)" },
+  { name: "European Union (all member states)", number: "112", desc: "Single emergency number across the EU." },
+  { name: "Australia", number: "000", desc: "Police, fire, ambulance." },
+  { name: "UAE", number: "999", desc: "Police. (998 ambulance, 997 fire.)" },
+  { name: "Common international fallback", number: "112", desc: "Works on most mobile networks worldwide, even without a local SIM, and routes to local emergency services." }
+];
+
 const API = "http://localhost:5000";
+
+function PlaceAutocomplete(props) {
+  const id = props.id;
+  const value = props.value;
+  const onChange = props.onChange;
+  const placeholder = props.placeholder;
+  const required = props.required;
+
+  const [suggestions, setSuggestions] = useState([]);
+  const [show, setShow] = useState(false);
+
+  function handleInput(v) {
+    onChange(v);
+    if (v.trim().length < 2) {
+      setSuggestions([]);
+      setShow(false);
+      return;
+    }
+    if (window.__placeTimer) clearTimeout(window.__placeTimer);
+    window.__placeTimer = setTimeout(function () {
+      var url = "https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=6&q=" + encodeURIComponent(v);
+      fetch(url)
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          setSuggestions(data);
+          setShow(true);
+        })
+        .catch(function () { setSuggestions([]); });
+    }, 400);
+  }
+
+  function select(place) {
+    var a = place.address || {};
+    var label = a.state ? (a.state + (a.country ? ", " + a.country : "")) : place.display_name;
+    onChange(label);
+    setSuggestions([]);
+    setShow(false);
+  }
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <input
+        id={id}
+        type="text"
+        placeholder={placeholder || "Start typing a state, region, or country..."}
+        value={value}
+        onChange={function (e) { handleInput(e.target.value); }}
+        onFocus={function () { if (suggestions.length > 0) setShow(true); }}
+        onBlur={function () { setTimeout(function () { setShow(false); }, 150); }}
+        autoComplete="off"
+        required={required}
+        style={{ width: '100%' }}
+      />
+      {show && suggestions.length > 0 && (
+        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: '5px', marginTop: '4px', boxShadow: '0 4px 16px rgba(20,41,61,0.12)', zIndex: 10, maxHeight: '220px', overflowY: 'auto' }}>
+          {suggestions.map(function (s, i) {
+            return (
+              <div
+                key={i}
+                onMouseDown={function () { select(s); }}
+                style={{ padding: '10px 12px', fontSize: '13px', cursor: 'pointer', borderBottom: i < suggestions.length - 1 ? '1px solid var(--border)' : 'none' }}
+                onMouseEnter={function (e) { e.currentTarget.style.background = '#f4f6f8'; }}
+                onMouseLeave={function (e) { e.currentTarget.style.background = 'transparent'; }}
+              >
+                {s.display_name}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EmergencyFab(props) {
+  return (
+    <button className="emergency-fab" onClick={props.onOpen}>
+      &#9888; Emergency Help
+    </button>
+  );
+}
+
+function EmergencyPage(props) {
+  return (
+    <div className="emergency-page">
+      <div className="emergency-header">
+        <h1>Immediate Danger?</h1>
+        <p>Contact local emergency services right now. Do not wait.</p>
+      </div>
+      <div style={{ maxWidth: '560px', margin: '0 auto', padding: '20px 20px 0' }}>
+        <div style={{ background: '#fff8e6', border: '1px solid #f0dca0', borderRadius: '8px', padding: '14px 18px', textAlign: 'center' }}>
+          <p style={{ margin: '0 0 8px', fontSize: '13.5px', color: '#6b5a1e', fontWeight: 600 }}>
+            This page is only for emergencies. For any other issue, go back to the home page.
+          </p>
+          <a href="#" onClick={function (e) { e.preventDefault(); props.onBack(); }} style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--navy)', textDecoration: 'underline' }}>
+            Back to Login
+          </a>
+        </div>
+      </div>
+      <div className="emergency-list">
+        <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '6px' }}>India</div>
+        {EMERGENCY_CONTACTS_INDIA.map(function (c) {
+          var telHref = "tel:" + c.number;
+          var cls = "emergency-call-btn" + (c.primary ? " primary" : "");
+          return (
+            <a key={c.number + c.name} href={telHref} className={cls}>
+              <div className="emergency-call-info">
+                <h4>{c.name}</h4>
+                <p>{c.desc}</p>
+              </div>
+              <div className="emergency-call-number">{c.number}</div>
+            </a>
+          );
+        })}
+
+        <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '18px' }}>International</div>
+        {EMERGENCY_CONTACTS_INTERNATIONAL.map(function (c) {
+          var telHref = "tel:" + c.number;
+          return (
+            <a key={c.number + c.name} href={telHref} className="emergency-call-btn">
+              <div className="emergency-call-info">
+                <h4>{c.name}</h4>
+                <p>{c.desc}</p>
+              </div>
+              <div className="emergency-call-number">{c.number}</div>
+            </a>
+          );
+        })}
+
+
+      </div>
+    </div>
+  );
+}
 
 function FlagBackground() {
   return (
@@ -32,13 +178,13 @@ function FlagBackground() {
   );
 }
 
-function Letterhead({ officerMode }) {
+function Letterhead(props) {
   return (
     <>
       <div className="letterhead">
         <div className="emblem">CS</div>
         <div className="letterhead-text">
-          <h1>Citizen Support &amp; Emergency Liaison Platform{officerMode && <span className="officer-badge">OFFICER PORTAL</span>}</h1>
+          <h1>Citizen Support &amp; Emergency Liaison Platform{props.officerMode && <span className="officer-badge">OFFICER PORTAL</span>}</h1>
           <p>Independent prototype &mdash; not officially affiliated with any government department</p>
         </div>
       </div>
@@ -49,7 +195,11 @@ function Letterhead({ officerMode }) {
   );
 }
 
-function AuthPage({ onLogin, onOfficerLogin }) {
+function AuthPage(props) {
+  var onLogin = props.onLogin;
+  var onOfficerLogin = props.onOfficerLogin;
+  var onEmergency = props.onEmergency;
+
   const [portal, setPortal] = useState('citizen');
   const [mode, setMode] = useState('login');
   const [form, setForm] = useState({ name: '', email: '', password: '', home_state: '', department: '', jurisdiction_state: '' });
@@ -57,19 +207,21 @@ function AuthPage({ onLogin, onOfficerLogin }) {
   const [loading, setLoading] = useState(false);
 
   function handleChange(e) {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    var updated = Object.assign({}, form);
+    updated[e.target.name] = e.target.value;
+    setForm(updated);
   }
 
-  async function handleSubmit(e) {
+  function handleSubmit(e) {
     e.preventDefault();
     setMessage(null);
     setLoading(true);
 
-    const isOfficer = portal === 'officer';
-    const base = isOfficer ? '/api/officer' : '/api/auth';
-    const endpoint = mode === 'login' ? `${base}/login` : `${base}/register`;
+    var isOfficer = portal === 'officer';
+    var base = isOfficer ? '/api/officer' : '/api/auth';
+    var endpoint = mode === 'login' ? (base + '/login') : (base + '/register');
 
-    let body;
+    var body;
     if (mode === 'login') {
       body = { email: form.email, password: form.password };
     } else if (isOfficer) {
@@ -78,38 +230,41 @@ function AuthPage({ onLogin, onOfficerLogin }) {
       body = { name: form.name, email: form.email, password: form.password, home_state: form.home_state };
     }
 
-    try {
-      const res = await fetch(`${API}${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setMessage({ type: 'error', text: data.error || 'Something went wrong.' });
-      } else {
-        setMessage({ type: 'success', text: data.message });
-        if (mode === 'login' && data.token) {
-          if (isOfficer) {
-            localStorage.setItem('officerToken', data.token);
-            localStorage.setItem('officer', JSON.stringify(data.officer));
-            onOfficerLogin(data.token, data.officer);
-          } else {
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('user', JSON.stringify(data.user));
-            onLogin(data.token, data.user);
+    fetch(API + endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+      .then(function (res) {
+        return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+      })
+      .then(function (result) {
+        if (!result.ok) {
+          setMessage({ type: 'error', text: result.data.error || 'Something went wrong.' });
+        } else {
+          setMessage({ type: 'success', text: result.data.message });
+          if (mode === 'login' && result.data.token) {
+            if (isOfficer) {
+              localStorage.setItem('officerToken', result.data.token);
+              localStorage.setItem('officer', JSON.stringify(result.data.officer));
+              onOfficerLogin(result.data.token, result.data.officer);
+            } else {
+              localStorage.setItem('token', result.data.token);
+              localStorage.setItem('user', JSON.stringify(result.data.user));
+              onLogin(result.data.token, result.data.user);
+            }
           }
         }
-      }
-    } catch (err) {
-      setMessage({ type: 'error', text: 'Could not reach the server. Is the backend running?' });
-    } finally {
-      setLoading(false);
-    }
+      })
+      .catch(function () {
+        setMessage({ type: 'error', text: 'Could not reach the server. Is the backend running?' });
+      })
+      .finally(function () {
+        setLoading(false);
+      });
   }
 
-  const isOfficer = portal === 'officer';
+  var isOfficer = portal === 'officer';
 
   return (
     <>
@@ -118,8 +273,8 @@ function AuthPage({ onLogin, onOfficerLogin }) {
       <div className="page-wrap">
         <div className="auth-card">
           <div className="tabs">
-            <button className={`tab ${mode === 'login' ? 'active' : ''}`} onClick={() => { setMode('login'); setMessage(null); }}>Sign In</button>
-            <button className={`tab ${mode === 'register' ? 'active' : ''}`} onClick={() => { setMode('register'); setMessage(null); }}>Register</button>
+            <button className={"tab" + (mode === 'login' ? ' active' : '')} onClick={function () { setMode('login'); setMessage(null); }}>Sign In</button>
+            <button className={"tab" + (mode === 'register' ? ' active' : '')} onClick={function () { setMode('register'); setMessage(null); }}>Register</button>
           </div>
           <form className="form-body" onSubmit={handleSubmit}>
             <h2>{isOfficer ? (mode === 'login' ? 'Officer sign in' : 'Register as an officer') : (mode === 'login' ? 'Sign in to your account' : 'Create a new account')}</h2>
@@ -148,11 +303,14 @@ function AuthPage({ onLogin, onOfficerLogin }) {
 
             {mode === 'register' && !isOfficer && (
               <div className="field">
-                <label htmlFor="home_state">Home state</label>
-                <select id="home_state" name="home_state" value={form.home_state} onChange={handleChange} required>
-                  <option value="">Select your home state</option>
-                  {STATES.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
+                <label htmlFor="home_state">Home state / region / country</label>
+                <PlaceAutocomplete
+                  id="home_state"
+                  value={form.home_state}
+                  onChange={function (v) { var u = Object.assign({}, form); u.home_state = v; setForm(u); }}
+                  placeholder="e.g. Andhra Pradesh, or your country"
+                  required={true}
+                />
               </div>
             )}
 
@@ -163,11 +321,14 @@ function AuthPage({ onLogin, onOfficerLogin }) {
                   <input id="department" name="department" type="text" placeholder="e.g. AP Nodal Office" value={form.department} onChange={handleChange} required />
                 </div>
                 <div className="field">
-                  <label htmlFor="jurisdiction_state">Jurisdiction state</label>
-                  <select id="jurisdiction_state" name="jurisdiction_state" value={form.jurisdiction_state} onChange={handleChange} required>
-                    <option value="">Select jurisdiction state</option>
-                    {STATES.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
+                  <label htmlFor="jurisdiction_state">Jurisdiction state / region / country</label>
+                  <PlaceAutocomplete
+                    id="jurisdiction_state"
+                    value={form.jurisdiction_state}
+                    onChange={function (v) { var u = Object.assign({}, form); u.jurisdiction_state = v; setForm(u); }}
+                    placeholder="e.g. Andhra Pradesh, or your country"
+                    required={true}
+                  />
                 </div>
               </>
             )}
@@ -176,24 +337,28 @@ function AuthPage({ onLogin, onOfficerLogin }) {
               {loading ? 'Please wait...' : mode === 'login' ? 'Sign in' : 'Create account'}
             </button>
 
-            {message && <div className={`message ${message.type}`}>{message.text}</div>}
+            {message && <div className={"message " + message.type}>{message.text}</div>}
           </form>
 
           <div className="portal-switch" style={{ paddingBottom: '20px' }}>
             {isOfficer
-              ? <>Not an officer? <button onClick={() => { setPortal('citizen'); setMessage(null); }}>Go to citizen portal</button></>
-              : <>Are you a government officer? <button onClick={() => { setPortal('officer'); setMessage(null); }}>Officer sign in</button></>}
+              ? <>Not an officer? <button onClick={function () { setPortal('citizen'); setMessage(null); }}>Go to citizen portal</button></>
+              : <>Are you a government officer? <button onClick={function () { setPortal('officer'); setMessage(null); }}>Officer sign in</button></>}
           </div>
         </div>
       </div>
       <p className="emergency-note">
         This is a prototype demonstration. No data submitted here is monitored by real authorities at this stage.
       </p>
+      <EmergencyFab onOpen={onEmergency} />
     </>
   );
 }
 
-function ComplaintForm({ token, onSubmitted }) {
+function ComplaintForm(props) {
+  var token = props.token;
+  var onSubmitted = props.onSubmitted;
+
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
@@ -216,16 +381,15 @@ function ComplaintForm({ token, onSubmitted }) {
       return;
     }
     if (window.__locTimer) clearTimeout(window.__locTimer);
-    window.__locTimer = setTimeout(async () => {
-      try {
-        const url = "https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&q=" + encodeURIComponent(value);
-        const res = await fetch(url);
-        const data = await res.json();
-        setSuggestions(data);
-        setShowSuggestions(true);
-      } catch (err) {
-        setSuggestions([]);
-      }
+    window.__locTimer = setTimeout(function () {
+      var url = "https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&q=" + encodeURIComponent(value);
+      fetch(url)
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          setSuggestions(data);
+          setShowSuggestions(true);
+        })
+        .catch(function () { setSuggestions([]); });
     }, 400);
   }
 
@@ -243,69 +407,76 @@ function ComplaintForm({ token, onSubmitted }) {
     setLocating(true);
     setLocationMessage(null);
     navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude;
-        const lon = pos.coords.longitude;
-        try {
-          const url = "https://nominatim.openstreetmap.org/reverse?format=json&lat=" + lat + "&lon=" + lon;
-          const res = await fetch(url);
-          const data = await res.json();
-          const address = data.display_name || (lat.toFixed(5) + ", " + lon.toFixed(5));
-          setLocation(address);
-          setLocationMessage({ type: 'success', text: 'Current location added.' });
-        } catch (err) {
-          setLocation(lat.toFixed(5) + ", " + lon.toFixed(5));
-          setLocationMessage({ type: 'success', text: 'Coordinates added (address lookup unavailable).' });
-        } finally {
-          setLocating(false);
-        }
+      function (pos) {
+        var lat = pos.coords.latitude;
+        var lon = pos.coords.longitude;
+        var url = "https://nominatim.openstreetmap.org/reverse?format=json&lat=" + lat + "&lon=" + lon;
+        fetch(url)
+          .then(function (res) { return res.json(); })
+          .then(function (data) {
+            var address = data.display_name || (lat.toFixed(5) + ", " + lon.toFixed(5));
+            setLocation(address);
+            setLocationMessage({ type: 'success', text: 'Current location added.' });
+          })
+          .catch(function () {
+            setLocation(lat.toFixed(5) + ", " + lon.toFixed(5));
+            setLocationMessage({ type: 'success', text: 'Coordinates added (address lookup unavailable).' });
+          })
+          .finally(function () { setLocating(false); });
       },
-      () => {
+      function () {
         setLocating(false);
         setLocationMessage({ type: 'error', text: 'Could not access location. Please allow location permission or enter it manually.' });
       }
     );
   }
 
-  async function handleSubmit(e) {
+  function handleSubmit(e) {
     e.preventDefault();
     setMessage(null);
     setLoading(true);
 
-    try {
-      const res = await fetch(`${API}/api/complaints`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ category, description, incident_location: location, danger_flag: danger, contact_phone: phone })
-      });
-      const data = await res.json();
+    fetch(API + "/api/complaints", {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ category: category, description: description, incident_location: location, danger_flag: danger, contact_phone: phone })
+    })
+      .then(function (res) {
+        return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+      })
+      .then(function (result) {
+        if (!result.ok) {
+          setMessage({ type: 'error', text: result.data.error || 'Something went wrong.' });
+          setLoading(false);
+          return;
+        }
 
-      if (!res.ok) {
-        setMessage({ type: 'error', text: data.error || 'Something went wrong.' });
+        var complaintId = result.data.complaint.id;
+
+        if (file) {
+          var formData = new FormData();
+          formData.append('file', file);
+          return fetch(API + "/api/evidence/" + complaintId, {
+            method: 'POST',
+            headers: { Authorization: 'Bearer ' + token },
+            body: formData
+          }).then(function () {
+            setMessage({ type: 'success', text: 'Complaint submitted successfully.' });
+            setCategory(''); setDescription(''); setLocation(''); setDanger(false); setPhone(''); setFile(null);
+            onSubmitted();
+            setLoading(false);
+          });
+        } else {
+          setMessage({ type: 'success', text: 'Complaint submitted successfully.' });
+          setCategory(''); setDescription(''); setLocation(''); setDanger(false); setPhone(''); setFile(null);
+          onSubmitted();
+          setLoading(false);
+        }
+      })
+      .catch(function () {
+        setMessage({ type: 'error', text: 'Could not reach the server.' });
         setLoading(false);
-        return;
-      }
-
-      const complaintId = data.complaint.id;
-
-      if (file) {
-        const formData = new FormData();
-        formData.append('file', file);
-        await fetch(`${API}/api/evidence/${complaintId}`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData
-        });
-      }
-
-      setMessage({ type: 'success', text: 'Complaint submitted successfully.' });
-      setCategory(''); setDescription(''); setLocation(''); setDanger(false); setPhone(''); setFile(null);
-      onSubmitted();
-    } catch (err) {
-      setMessage({ type: 'error', text: 'Could not reach the server.' });
-    } finally {
-      setLoading(false);
-    }
+      });
   }
 
   return (
@@ -316,15 +487,15 @@ function ComplaintForm({ token, onSubmitted }) {
       </div>
       <form className="panel-body" onSubmit={handleSubmit}>
         <div className="danger-check">
-          <input type="checkbox" id="danger" checked={danger} onChange={e => setDanger(e.target.checked)} />
+          <input type="checkbox" id="danger" checked={danger} onChange={function (e) { setDanger(e.target.checked); }} />
           <label htmlFor="danger">I am currently in immediate danger</label>
         </div>
 
         <div className="field">
           <label htmlFor="category">Category</label>
-          <select id="category" value={category} onChange={e => setCategory(e.target.value)} required>
+          <select id="category" value={category} onChange={function (e) { setCategory(e.target.value); }} required>
             <option value="">Select a category</option>
-            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            {CATEGORIES.map(function (c) { return <option key={c} value={c}>{c}</option>; })}
           </select>
         </div>
 
@@ -337,25 +508,27 @@ function ComplaintForm({ token, onSubmitted }) {
                 type="text"
                 placeholder="Start typing a place..."
                 value={location}
-                onChange={e => handleLocationInput(e.target.value)}
-                onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                onChange={function (e) { handleLocationInput(e.target.value); }}
+                onFocus={function () { if (suggestions.length > 0) setShowSuggestions(true); }}
+                onBlur={function () { setTimeout(function () { setShowSuggestions(false); }, 150); }}
                 autoComplete="off"
                 style={{ width: '100%' }}
               />
               {showSuggestions && suggestions.length > 0 && (
                 <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: '5px', marginTop: '4px', boxShadow: '0 4px 16px rgba(20,41,61,0.12)', zIndex: 10, maxHeight: '220px', overflowY: 'auto' }}>
-                  {suggestions.map((s, i) => (
-                    <div
-                      key={i}
-                      onMouseDown={() => selectSuggestion(s)}
-                      style={{ padding: '10px 12px', fontSize: '13px', cursor: 'pointer', borderBottom: i < suggestions.length - 1 ? '1px solid var(--border)' : 'none' }}
-                      onMouseEnter={e => e.currentTarget.style.background = '#f4f6f8'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    >
-                      {s.display_name}
-                    </div>
-                  ))}
+                  {suggestions.map(function (s, i) {
+                    return (
+                      <div
+                        key={i}
+                        onMouseDown={function () { selectSuggestion(s); }}
+                        style={{ padding: '10px 12px', fontSize: '13px', cursor: 'pointer', borderBottom: i < suggestions.length - 1 ? '1px solid var(--border)' : 'none' }}
+                        onMouseEnter={function (e) { e.currentTarget.style.background = '#f4f6f8'; }}
+                        onMouseLeave={function (e) { e.currentTarget.style.background = 'transparent'; }}
+                      >
+                        {s.display_name}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -368,23 +541,23 @@ function ComplaintForm({ token, onSubmitted }) {
               {locating ? 'Locating...' : 'Use current location'}
             </button>
           </div>
-          {locationMessage && <div className={`message ${locationMessage.type}`} style={{ marginTop: '8px' }}>{locationMessage.text}</div>}
+          {locationMessage && <div className={"message " + locationMessage.type} style={{ marginTop: '8px' }}>{locationMessage.text}</div>}
         </div>
 
         <div className="field">
           <label htmlFor="phone">Contact phone number</label>
-          <input id="phone" type="tel" placeholder="e.g. +91 98765 43210" value={phone} onChange={e => setPhone(e.target.value)} />
+          <input id="phone" type="tel" placeholder="e.g. +91 98765 43210" value={phone} onChange={function (e) { setPhone(e.target.value); }} />
         </div>
 
         <div className="field">
           <label htmlFor="description">Description</label>
-          <textarea id="description" placeholder="Describe what happened, when, and who is involved." value={description} onChange={e => setDescription(e.target.value)} required />
+          <textarea id="description" placeholder="Describe what happened, when, and who is involved." value={description} onChange={function (e) { setDescription(e.target.value); }} required />
         </div>
 
         <div className="field">
           <label>Evidence (optional)</label>
           <label className="file-input-wrap">
-            <input type="file" accept="image/*,video/*,application/pdf" onChange={e => setFile(e.target.files[0])} />
+            <input type="file" accept="image/*,video/*,application/pdf" onChange={function (e) { setFile(e.target.files[0]); }} />
             {file ? 'Change file' : 'Click to attach photo, video, or PDF (max 50MB)'}
           </label>
           {file && <div className="file-name">Attached: {file.name}</div>}
@@ -394,30 +567,29 @@ function ComplaintForm({ token, onSubmitted }) {
           {loading ? 'Submitting...' : 'Submit complaint'}
         </button>
 
-        {message && <div className={`message ${message.type}`}>{message.text}</div>}
+        {message && <div className={"message " + message.type}>{message.text}</div>}
       </form>
     </div>
   );
 }
 
-function ComplaintList({ token, refreshKey }) {
+function ComplaintList(props) {
+  var token = props.token;
+  var refreshKey = props.refreshKey;
+
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  async function fetchComplaints() {
+  function fetchComplaints() {
     setLoading(true);
-    try {
-      const res = await fetch(`${API}/api/complaints`, { headers: { Authorization: `Bearer ${token}` } });
-      const data = await res.json();
-      setComplaints(data.complaints || []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    fetch(API + "/api/complaints", { headers: { Authorization: 'Bearer ' + token } })
+      .then(function (res) { return res.json(); })
+      .then(function (data) { setComplaints(data.complaints || []); })
+      .catch(function (err) { console.error(err); })
+      .finally(function () { setLoading(false); });
   }
 
-  useEffect(() => { fetchComplaints(); }, [refreshKey]);
+  useEffect(function () { fetchComplaints(); }, [refreshKey]);
 
   return (
     <div className="panel">
@@ -429,31 +601,39 @@ function ComplaintList({ token, refreshKey }) {
         <div className="complaint-list">
           {loading && <div className="empty-state">Loading...</div>}
           {!loading && complaints.length === 0 && <div className="empty-state">No complaints submitted yet.</div>}
-          {complaints.map(c => (
-            <div key={c.id} className={`complaint-card ${c.danger_flag ? 'danger' : ''}`}>
-              <div className="complaint-top">
-                <span className="complaint-category">{c.category}</span>
-                <span className={`status-badge status-${c.status.replace(/ /g, '-')}`}>{c.status}</span>
+          {complaints.map(function (c) {
+            var dateStr = new Date(c.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+            return (
+              <div key={c.id} className={"complaint-card" + (c.danger_flag ? " danger" : "")}>
+                <div className="complaint-top">
+                  <span className="complaint-category">{c.category}</span>
+                  <span className={"status-badge status-" + c.status.replace(/ /g, '-')}>{c.status}</span>
+                </div>
+                <div className="complaint-desc">{c.description}</div>
+                <div className="complaint-meta">
+                  {c.incident_location ? (c.incident_location + " \u00B7 ") : ""}
+                  {dateStr}
+                </div>
               </div>
-              <div className="complaint-desc">{c.description}</div>
-              <div className="complaint-meta">
-                {c.incident_location && `${c.incident_location} · `}
-                {new Date(c.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
   );
 }
 
-function Dashboard({ token, user, onLogout }) {
+function Dashboard(props) {
+  var token = props.token;
+  var user = props.user;
+  var onLogout = props.onLogout;
+  var onEmergency = props.onEmergency;
+
   const [refreshKey, setRefreshKey] = useState(0);
   return (
     <>
       <div className="topbar">
-        <div className="topbar-title">Welcome, {user?.name || 'Citizen'}</div>
+        <div className="topbar-title">Welcome, {(user && user.name) || 'Citizen'}</div>
         <button className="logout-btn" onClick={onLogout}>Sign out</button>
       </div>
       <div className="disclaimer-strip">
@@ -461,133 +641,148 @@ function Dashboard({ token, user, onLogout }) {
       </div>
       <div className="dashboard-wrap">
         <div className="dashboard-grid">
-          <ComplaintForm token={token} onSubmitted={() => setRefreshKey(k => k + 1)} />
+          <ComplaintForm token={token} onSubmitted={function () { setRefreshKey(refreshKey + 1); }} />
           <ComplaintList token={token} refreshKey={refreshKey} />
         </div>
       </div>
+      <EmergencyFab onOpen={onEmergency} />
     </>
   );
 }
 
-function OfficerComplaintCard({ complaint, token, onUpdated }) {
+function OfficerComplaintCard(props) {
+  var complaint = props.complaint;
+  var token = props.token;
+  var onUpdated = props.onUpdated;
+
   const [status, setStatus] = useState(complaint.status);
   const [updating, setUpdating] = useState(false);
   const [msg, setMsg] = useState(null);
 
-  async function handleUpdate() {
+  function handleUpdate() {
     setUpdating(true);
     setMsg(null);
-    try {
-      const res = await fetch(`${API}/api/officer/dashboard/complaints/${complaint.id}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ status })
+    fetch(API + "/api/officer/dashboard/complaints/" + complaint.id + "/status", {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ status: status })
+    })
+      .then(function (res) {
+        return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+      })
+      .then(function (result) {
+        if (!result.ok) {
+          setMsg({ type: 'error', text: result.data.error });
+        } else {
+          setMsg({ type: 'success', text: 'Status updated.' });
+          onUpdated();
+        }
+      })
+      .catch(function () {
+        setMsg({ type: 'error', text: 'Could not reach the server.' });
+      })
+      .finally(function () {
+        setUpdating(false);
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setMsg({ type: 'error', text: data.error });
-      } else {
-        setMsg({ type: 'success', text: 'Status updated.' });
-        onUpdated();
-      }
-    } catch (err) {
-      setMsg({ type: 'error', text: 'Could not reach the server.' });
-    } finally {
-      setUpdating(false);
-    }
   }
 
+  var dateStr = new Date(complaint.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+
   return (
-    <div className={`complaint-card ${complaint.danger_flag ? 'danger' : ''}`}>
+    <div className={"complaint-card" + (complaint.danger_flag ? " danger" : "")}>
       <div className="complaint-top">
         <span className="complaint-category">{complaint.category}</span>
-        <span className={`status-badge status-${complaint.status.replace(/ /g, '-')}`}>{complaint.status}</span>
+        <span className={"status-badge status-" + complaint.status.replace(/ /g, '-')}>{complaint.status}</span>
       </div>
       <div className="complaint-desc">{complaint.description}</div>
       <div className="complaint-meta">
-        {complaint.incident_location && `${complaint.incident_location} · `}
-        {new Date(complaint.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+        {complaint.incident_location ? (complaint.incident_location + " \u00B7 ") : ""}
+        {dateStr}
       </div>
       <div className="citizen-info">
         Reported by: {complaint.citizen_name} ({complaint.citizen_email}) &middot; Home state: {complaint.home_state}
+        {complaint.contact_phone ? (" \u00B7 Phone: " + complaint.contact_phone) : ""}
       </div>
       <div className="status-update-row">
-        <select className="status-select" value={status} onChange={e => setStatus(e.target.value)}>
-          {VALID_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+        <select className="status-select" value={status} onChange={function (e) { setStatus(e.target.value); }}>
+          {VALID_STATUSES.map(function (s) { return <option key={s} value={s}>{s}</option>; })}
         </select>
         <button className="status-update-btn" onClick={handleUpdate} disabled={updating || status === complaint.status}>
           {updating ? 'Updating...' : 'Update status'}
         </button>
       </div>
-      {msg && <div className={`message ${msg.type}`} style={{ marginTop: '8px' }}>{msg.text}</div>}
+      {msg && <div className={"message " + msg.type} style={{ marginTop: '8px' }}>{msg.text}</div>}
     </div>
   );
 }
 
-function OfficerDashboard({ token, officer, onLogout }) {
+function OfficerDashboard(props) {
+  var token = props.token;
+  var officer = props.officer;
+  var onLogout = props.onLogout;
+  var onEmergency = props.onEmergency;
+
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  async function fetchComplaints() {
+  function fetchComplaints() {
     setLoading(true);
-    try {
-      const res = await fetch(`${API}/api/officer/dashboard/complaints`, { headers: { Authorization: `Bearer ${token}` } });
-      const data = await res.json();
-      setComplaints(data.complaints || []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    fetch(API + "/api/officer/dashboard/complaints", { headers: { Authorization: 'Bearer ' + token } })
+      .then(function (res) { return res.json(); })
+      .then(function (data) { setComplaints(data.complaints || []); })
+      .catch(function (err) { console.error(err); })
+      .finally(function () { setLoading(false); });
   }
 
-  useEffect(() => { fetchComplaints(); }, [refreshKey]);
+  useEffect(function () { fetchComplaints(); }, [refreshKey]);
 
   return (
     <>
       <div className="topbar">
         <div className="topbar-title">
-          {officer?.name || 'Officer'}
+          {(officer && officer.name) || 'Officer'}
           <span className="officer-badge">OFFICER</span>
         </div>
         <button className="logout-btn" onClick={onLogout}>Sign out</button>
       </div>
       <div className="disclaimer-strip">
-        {officer?.department} &middot; Jurisdiction: {officer?.jurisdiction_state}
+        {officer && officer.department} &middot; Jurisdiction: {officer && officer.jurisdiction_state}
       </div>
       <div className="dashboard-wrap">
         <div className="panel">
           <div className="panel-header">
             <h3>Complaints in your jurisdiction</h3>
-            <p>Showing complaints from citizens whose home state is {officer?.jurisdiction_state}. Danger flags are shown first.</p>
+            <p>Showing complaints from citizens whose home state is {officer && officer.jurisdiction_state}. Danger flags are shown first.</p>
           </div>
           <div className="panel-body">
             <div className="complaint-list">
               {loading && <div className="empty-state">Loading...</div>}
               {!loading && complaints.length === 0 && <div className="empty-state">No complaints in your jurisdiction yet.</div>}
-              {complaints.map(c => (
-                <OfficerComplaintCard key={c.id} complaint={c} token={token} onUpdated={() => setRefreshKey(k => k + 1)} />
-              ))}
+              {complaints.map(function (c) {
+                return <OfficerComplaintCard key={c.id} complaint={c} token={token} onUpdated={function () { setRefreshKey(refreshKey + 1); }} />;
+              })}
             </div>
           </div>
         </div>
       </div>
+      <EmergencyFab onOpen={onEmergency} />
     </>
   );
 }
 
 export default function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
-  const [user, setUser] = useState(() => {
-    const stored = localStorage.getItem('user');
+  const [user, setUser] = useState(function () {
+    var stored = localStorage.getItem('user');
     return stored ? JSON.parse(stored) : null;
   });
   const [officerToken, setOfficerToken] = useState(localStorage.getItem('officerToken'));
-  const [officer, setOfficer] = useState(() => {
-    const stored = localStorage.getItem('officer');
+  const [officer, setOfficer] = useState(function () {
+    var stored = localStorage.getItem('officer');
     return stored ? JSON.parse(stored) : null;
   });
+  const [showEmergency, setShowEmergency] = useState(false);
 
   function handleLogin(newToken, newUser) {
     setToken(newToken);
@@ -613,14 +808,21 @@ export default function App() {
     setOfficer(null);
   }
 
+  if (showEmergency) {
+    return <EmergencyPage onBack={function () { setShowEmergency(false); }} />;
+  }
+
   if (officerToken) {
-    return <OfficerDashboard token={officerToken} officer={officer} onLogout={handleOfficerLogout} />;
+    return <OfficerDashboard token={officerToken} officer={officer} onLogout={handleOfficerLogout} onEmergency={function () { setShowEmergency(true); }} />;
   }
 
   if (token) {
-    return <Dashboard token={token} user={user} onLogout={handleLogout} />;
+    return <Dashboard token={token} user={user} onLogout={handleLogout} onEmergency={function () { setShowEmergency(true); }} />;
   }
 
-  return <AuthPage onLogin={handleLogin} onOfficerLogin={handleOfficerLogin} />;
+  return <AuthPage onLogin={handleLogin} onOfficerLogin={handleOfficerLogin} onEmergency={function () { setShowEmergency(true); }} />;
 }
+
+
+
 

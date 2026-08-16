@@ -682,3 +682,129 @@ body {
   text-align: center;
   margin-top: 16px;
 }
+
+
+.emergency-page {
+  min-height: 100vh;
+  background: #fdfdfb;
+}
+
+.emergency-header {
+  background: var(--red);
+  color: var(--white);
+  padding: 24px;
+  text-align: center;
+}
+
+.emergency-header h1 {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 24px;
+  margin: 0 0 8px;
+}
+
+.emergency-header p {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.95;
+}
+
+.emergency-list {
+  max-width: 560px;
+  margin: 28px auto;
+  padding: 0 20px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.emergency-call-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--white);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 18px 22px;
+  text-decoration: none;
+  color: var(--text);
+  transition: border-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.emergency-call-btn:hover {
+  border-color: var(--red);
+  box-shadow: 0 4px 16px rgba(179, 38, 30, 0.12);
+  transform: translateY(-1px);
+}
+
+.emergency-call-btn.primary {
+  background: #b3261e !important;
+  border-color: #b3261e !important;
+  color: #ffffff !important;
+}
+
+.emergency-call-btn.primary h4,
+.emergency-call-btn.primary p {
+  color: #ffffff !important;
+}
+
+.emergency-call-btn.primary:hover {
+  background: #9a1f18;
+}
+
+.emergency-call-info h4 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.emergency-call-info p {
+  margin: 0;
+  font-size: 12.5px;
+  opacity: 0.85;
+}
+
+.emergency-call-number {
+  font-size: 24px;
+  font-weight: 800;
+  font-family: 'Source Serif 4', Georgia, serif;
+  white-space: nowrap;
+  margin-left: 16px;
+}
+
+.emergency-back {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.emergency-back a {
+  color: var(--text-muted);
+  font-size: 13px;
+  text-decoration: underline;
+}
+
+.emergency-fab {
+  position: fixed;
+  bottom: 22px;
+  right: 22px;
+  background: #b3261e !important;
+  color: #ffffff !important;
+  border: none;
+  border-radius: 30px;
+  padding: 13px 22px;
+  font-weight: 700;
+  font-size: 14px;
+  box-shadow: 0 4px 16px rgba(179,38,30,0.45);
+  cursor: pointer;
+  z-index: 100;
+  font-family: inherit;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.emergency-fab:hover {
+  background: #8f1a14 !important;
+}
+
+
