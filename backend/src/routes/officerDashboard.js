@@ -8,7 +8,7 @@ router.get('/complaints', verifyOfficer, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT c.id, c.category, c.description, c.incident_location, c.danger_flag, c.contact_phone, c.status, c.created_at,
-              u.name AS citizen_name, u.email AS citizen_email, u.home_state, u.phone AS citizen_phone, u.village AS citizen_village
+              u.name AS citizen_name, u.email AS citizen_email, u.home_state, u.phone AS citizen_phone, u.village AS citizen_village, u.current_location AS citizen_current_location, u.profile_pic_url AS citizen_profile_pic
        FROM complaints c
        JOIN users u ON c.user_id = u.id
        WHERE u.home_state = $1
@@ -82,6 +82,7 @@ router.get('/complaints/:id/evidence', verifyOfficer, async (req, res) => {
 });
 
 module.exports = router;
+
 
 
 

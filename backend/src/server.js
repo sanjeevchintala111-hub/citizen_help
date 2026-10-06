@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 const authRoutes = require('./routes/auth');
+const googleAuthRoutes = require('./routes/googleAuth');
 const complaintRoutes = require('./routes/complaints');
 const directoryRoutes = require('./routes/directory');
 const evidenceRoutes = require('./routes/evidence');
@@ -19,6 +20,7 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/auth', googleAuthRoutes);
 app.use('/api/complaints', complaintRoutes);
 app.use('/api/directory', directoryRoutes);
 app.use('/api/evidence', evidenceRoutes);
@@ -31,5 +33,6 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
 
 

@@ -449,6 +449,36 @@ function Letterhead(props) {
   );
 }
 
+var GOOGLE_CLIENT_ID = "999716085918-3m5g8bobiba1k2pmnae7l4fjefrfari7.apps.googleusercontent.com";
+
+function GoogleSignInButton(props) {
+  var onCredential = props.onCredential;
+  const [ready, setReady] = useState(false);
+
+  useEffect(function () {
+    function tryInit() {
+      if (window.google && window.google.accounts && window.google.accounts.id) {
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: function (response) {
+            onCredential(response.credential);
+          }
+        });
+        var el = document.getElementById('googleBtnDiv');
+        if (el) {
+          window.google.accounts.id.renderButton(el, { theme: 'outline', size: 'large', width: 320, text: 'continue_with' });
+        }
+        setReady(true);
+      } else {
+        setTimeout(tryInit, 300);
+      }
+    }
+    tryInit();
+  }, []);
+
+  return <div id="googleBtnDiv" style={{ display: 'flex', justifyContent: 'center', margin: '14px 0' }}></div>;
+}
+
 function AuthPage(props) {
   var onLogin = props.onLogin;
   var onOfficerLogin = props.onOfficerLogin;
@@ -493,6 +523,32 @@ function AuthPage(props) {
     var updated = Object.assign({}, form);
     updated[e.target.name] = e.target.value;
     setForm(updated);
+  }
+
+  function handleGoogleCredential(credential) {
+    setMessage(null);
+    setLoading(true);
+    fetch(API + '/api/auth/google', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential: credential })
+    })
+      .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+      .then(function (result) {
+        if (!result.ok) {
+          setMessage({ type: 'error', text: result.data.error || 'Google sign-in failed.' });
+        } else {
+          localStorage.setItem('token', result.data.token);
+          localStorage.setItem('user', JSON.stringify(result.data.user));
+          onLogin(result.data.token, result.data.user);
+        }
+      })
+      .catch(function () {
+        setMessage({ type: 'error', text: 'Could not reach the server.' });
+      })
+      .finally(function () {
+        setLoading(false);
+      });
   }
 
   function handleSubmit(e) {
@@ -643,6 +699,13 @@ function AuthPage(props) {
             <button className="submit-btn" type="submit" disabled={loading}>
               {loading ? 'Please wait...' : mode === 'login' ? 'Sign in' : 'Create account'}
             </button>
+
+            {!isOfficer && mode === 'login' && (
+              <>
+                <div style={{ textAlign: 'center', margin: '14px 0 2px', fontSize: '12px', color: 'var(--text-muted)' }}>or</div>
+                <GoogleSignInButton onCredential={handleGoogleCredential} />
+              </>
+            )}
 
             {message && <div className={"message " + message.type}>{message.text}</div>}
             {mode === 'login' && (
@@ -1440,6 +1503,9 @@ export default function App() {
     </div>
   );
 }
+
+
+
 
 
 
