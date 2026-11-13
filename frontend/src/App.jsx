@@ -719,7 +719,7 @@ function AuthPage(props) {
           <div className="portal-switch" style={{ paddingBottom: '10px' }}>
             {isOfficer
               ? <>Not an officer? <button onClick={function () { setPortal('citizen'); setMessage(null); window.history.pushState({}, '', '/'); }}>Go to citizen portal</button></>
-              : <>Are you a government officer? <button onClick={function () { setPortal('officer'); setMessage(null); window.history.pushState({}, '', '/officer'); }}>Officer sign in</button></>}
+              : null}
           </div>
           <div className="portal-switch" style={{ paddingBottom: '20px' }}>
             <button onClick={onReviews}>See community reviews</button>
@@ -1503,6 +1503,7 @@ export default function App() {
     </div>
   );
 }
+
 
 
 
