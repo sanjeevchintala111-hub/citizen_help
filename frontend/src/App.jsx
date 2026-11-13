@@ -525,6 +525,32 @@ function AuthPage(props) {
     setForm(updated);
   }
 
+  function handleOfficerGoogleCredential(credential) {
+    setMessage(null);
+    setLoading(true);
+    fetch(API + '/api/officer/google', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential: credential })
+    })
+      .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+      .then(function (result) {
+        if (!result.ok) {
+          setMessage({ type: 'error', text: result.data.error || 'Google sign-in failed.' });
+        } else {
+          localStorage.setItem('officerToken', result.data.token);
+          localStorage.setItem('officer', JSON.stringify(result.data.officer));
+          onOfficerLogin(result.data.token, result.data.officer);
+        }
+      })
+      .catch(function () {
+        setMessage({ type: 'error', text: 'Could not reach the server.' });
+      })
+      .finally(function () {
+        setLoading(false);
+      });
+  }
+
   function handleGoogleCredential(credential) {
     setMessage(null);
     setLoading(true);
@@ -700,10 +726,10 @@ function AuthPage(props) {
               {loading ? 'Please wait...' : mode === 'login' ? 'Sign in' : 'Create account'}
             </button>
 
-            {!isOfficer && mode === 'login' && (
+            {mode === 'login' && (
               <>
                 <div style={{ textAlign: 'center', margin: '14px 0 2px', fontSize: '12px', color: 'var(--text-muted)' }}>or</div>
-                <GoogleSignInButton onCredential={handleGoogleCredential} />
+                <GoogleSignInButton key={portal} onCredential={portal === 'officer' ? handleOfficerGoogleCredential : handleGoogleCredential} />
               </>
             )}
 
@@ -1503,6 +1529,7 @@ export default function App() {
     </div>
   );
 }
+
 
 
 
