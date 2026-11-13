@@ -486,7 +486,7 @@ function AuthPage(props) {
   var onHelp = props.onHelp;
   var onReviews = props.onReviews;
 
-  const [portal, setPortal] = useState('citizen');
+  const [portal, setPortal] = useState(window.location.pathname.indexOf('/officer') === 0 ? 'officer' : 'citizen');
   const [mode, setMode] = useState('login');
   const [resetEmail, setResetEmail] = useState('');
   const [resetPassword, setResetPassword] = useState('');
@@ -718,8 +718,8 @@ function AuthPage(props) {
 
           <div className="portal-switch" style={{ paddingBottom: '10px' }}>
             {isOfficer
-              ? <>Not an officer? <button onClick={function () { setPortal('citizen'); setMessage(null); }}>Go to citizen portal</button></>
-              : <>Are you a government officer? <button onClick={function () { setPortal('officer'); setMessage(null); }}>Officer sign in</button></>}
+              ? <>Not an officer? <button onClick={function () { setPortal('citizen'); setMessage(null); window.history.pushState({}, '', '/'); }}>Go to citizen portal</button></>
+              : <>Are you a government officer? <button onClick={function () { setPortal('officer'); setMessage(null); window.history.pushState({}, '', '/officer'); }}>Officer sign in</button></>}
           </div>
           <div className="portal-switch" style={{ paddingBottom: '20px' }}>
             <button onClick={onReviews}>See community reviews</button>
@@ -1503,6 +1503,8 @@ export default function App() {
     </div>
   );
 }
+
+
 
 
 
